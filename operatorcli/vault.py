@@ -1,6 +1,7 @@
 import collections
 import copy
 import json
+import time
 from functools import cached_property, lru_cache
 from typing import Dict, OrderedDict, Set, Union
 
@@ -21,13 +22,13 @@ from operatorcli.eth1 import (
 from operatorcli.eth2 import (
     EXITED_STATUSES,
     generate_password,
-    get_mnemonic_private_key,
+    get_mnemonic_signing_key,
     get_validators,
 )
 from operatorcli.graphql import get_stakewise_gql_client
 from operatorcli.ipfs import get_operator_deposit_datum
 from operatorcli.settings import VALIDATORS_NAMESPACE, VAULT_VALIDATORS_MOUNT_POINT
-from operatorcli.types import BLSPrivkey, VaultKeystore, VaultState
+from operatorcli.types import SigningKey, VaultKeystore, VaultState
 
 MAX_KEYS_PER_VALIDATOR = 100
 
@@ -62,11 +63,10 @@ class Vault(object):
     def vault_validator_names(self) -> Set[str]:
         """Fetches names of vault validators."""
         try:
-            return set(
-                self.vault_client.secrets.kv.v1.list_secrets(
-                    path="", mount_point=VAULT_VALIDATORS_MOUNT_POINT
-                )["data"]["keys"]
-            )
+            names = self.vault_client.secrets.kv.v1.list_secrets(
+                path="", mount_point=VAULT_VALIDATORS_MOUNT_POINT
+            )["data"]["keys"]
+            return set([name.strip("/") for name in names])
         except InvalidPath:
             return set()
 
@@ -135,9 +135,9 @@ class Vault(object):
     @cached_property
     def operator_address(self) -> Union[ChecksumAddress, None]:
         """Returns vault's operator address."""
-        first_private_key = get_mnemonic_private_key(self.mnemonic, 0)
+        signing_key = get_mnemonic_signing_key(self.mnemonic, 0)
         first_public_key = Web3.toHex(
-            primitive=G2ProofOfPossession.SkToPk(first_private_key)
+            primitive=G2ProofOfPossession.SkToPk(signing_key.key)
         )
         operator_address = get_validator_operator_address(
             self.sw_gql_client, first_public_key
@@ -162,24 +162,24 @@ class Vault(object):
         )
 
     @cached_property
-    def vault_missing_keypairs(self) -> OrderedDict[HexStr, BLSPrivkey]:
+    def vault_missing_keypairs(self) -> OrderedDict[HexStr, SigningKey]:
         """Returns ordered mapping of BLS public key to private key that are missing in the vault."""
         deposit_data_count = len(self.operator_deposit_data_public_keys)
-        missed_keypairs: OrderedDict[HexStr, BLSPrivkey] = collections.OrderedDict()
+        missed_keypairs: OrderedDict[HexStr, SigningKey] = collections.OrderedDict()
         with click.progressbar(
             length=deposit_data_count,
-            label="Fetching vault missing keys\t\t",
+            label="Checking vault missing keys\t\t",
             show_percent=False,
             show_pos=True,
         ) as bar:
             processed_count = 0
             from_index = 0
             while processed_count != deposit_data_count:
-                private_key = get_mnemonic_private_key(self.mnemonic, from_index)
-                public_key = Web3.toHex(G2ProofOfPossession.SkToPk(private_key))
+                signing_key = get_mnemonic_signing_key(self.mnemonic, from_index)
+                public_key = Web3.toHex(G2ProofOfPossession.SkToPk(signing_key.key))
 
                 if public_key not in self.vault_current_state:
-                    missed_keypairs[public_key] = private_key
+                    missed_keypairs[public_key] = signing_key
 
                 if public_key in self.operator_deposit_data_public_keys:
                     processed_count += 1
@@ -279,10 +279,11 @@ class Vault(object):
             for public_key in missing_keypairs:
                 validator_name = min(validator_keys_count, key=validator_keys_count.get)
                 if public_key not in new_state:
-                    secret = self.vault_missing_keypairs[public_key].to_bytes(32, "big")
+                    signing_key = self.vault_missing_keypairs[public_key]
+                    secret = signing_key.key.to_bytes(32, "big")
                     password = self.get_or_create_keystore_password(validator_name)
                     keystore = ScryptKeystore.encrypt(
-                        secret=secret, password=password
+                        secret=secret, password=password, path=signing_key.path
                     ).as_json()
                     new_state[public_key] = VaultKeystore(
                         validator_name=validator_name, keystore=keystore
@@ -371,16 +372,17 @@ class Vault(object):
         for public_key, vault_keystore in self.vault_new_state.items():
             validator_name = vault_keystore["validator_name"]
             keystores = validators_keystores.setdefault(validator_name, {})
+            keystore = vault_keystore["keystore"]
+            keystore_path = json.loads(keystore)["path"]
 
             # generate unique keystore name
-            limit = 8
-            keystore_name = f"keystore-{public_key[:limit]}.json"
-            while keystore_name in keystores:
-                limit += 1
-                keystore_name = f"keystore-{public_key[:limit]}.json"
+            keystore_name = "keystore-%s-%i.json" % (
+                keystore_path.replace("/", "_"),
+                time.time(),
+            )
 
             # save keystore
-            keystores[keystore_name] = vault_keystore["keystore"]
+            keystores[keystore_name] = keystore
 
         # sync keystores in vault
         with click.progressbar(

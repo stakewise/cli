@@ -41,6 +41,7 @@ from operatorcli.types import (
     Gwei,
     KeyPair,
     MerkleDepositData,
+    SigningKey,
 )
 
 # TODO: find a way to import "from eth2deposit.utils.constants import WORD_LISTS_PATH"
@@ -165,15 +166,15 @@ def generate_unused_validator_keys(
     ]
 
 
-def get_mnemonic_private_key(mnemonic: str, from_index: int) -> BLSPrivkey:
-    """Returns the private key of the mnemonic at a specific index."""
+def get_mnemonic_signing_key(mnemonic: str, from_index: int) -> SigningKey:
+    """Returns the signing key of the mnemonic at a specific index."""
     seed = get_seed(mnemonic=mnemonic, password="")
     private_key = BLSPrivkey(derive_master_SK(seed))
     signing_key_path = f"m/{PURPOSE}/{COIN_TYPE}/{from_index}/0/0"
     for node in path_to_nodes(signing_key_path):
         private_key = BLSPrivkey(derive_child_SK(parent_SK=private_key, index=node))
 
-    return private_key
+    return SigningKey(key=private_key, path=signing_key_path)
 
 
 @backoff.on_exception(backoff.expo, Exception, max_time=180)

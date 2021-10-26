@@ -1,4 +1,4 @@
-from typing import Dict, List, NewType, TypedDict
+from typing import Dict, List, NamedTuple, NewType, TypedDict
 
 from eth_typing import HexStr
 
@@ -25,6 +25,11 @@ class MerkleDepositData(TypedDict):
 class VaultKeystore(TypedDict):
     validator_name: str
     keystore: str
+
+
+class SigningKey(NamedTuple):
+    path: str
+    key: BLSPrivkey
 
 
 VaultState = Dict[HexStr, VaultKeystore]
