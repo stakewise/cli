@@ -451,7 +451,7 @@ class Vault(object):
         if not self.vault_current_state:
             return
 
-        public_key1 = add_0x_prefix(HexStr(next(iter(self.vault_current_state))))
+        public_key1 = next(iter(self.vault_current_state))
         vault_keystore = self.vault_current_state[public_key1]
         keystore = ScryptKeystore.from_json(json.loads(vault_keystore["keystore"]))
 
