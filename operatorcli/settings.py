@@ -4,16 +4,16 @@ from typing import Dict
 from decouple import config
 from eth2deposit.settings import (
     MAINNET,
-    PYRMONT,
+    PRATER,
     BaseChainSetting,
     MainnetSetting,
-    PyrmontSetting,
+    PraterSetting,
 )
 
 # supported networks
 SUPPORTED_CHAINS: Dict[str, BaseChainSetting] = {
     MAINNET: MainnetSetting,
-    PYRMONT: PyrmontSetting,
+    PRATER: PraterSetting,
 }
 
 OUTPUT_DIR = config("OUTPUT_DIR", default=os.path.join(os.getcwd(), "output"))
