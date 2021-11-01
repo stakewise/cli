@@ -74,7 +74,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.OS }}-artifacts
+          name: ${{ matrix.OS }}
           path: /tmp/artifacts/*
           if-no-files-found: error
 
