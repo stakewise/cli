@@ -1,9 +1,12 @@
-name: Build
+name: Release
 
-on: [ push ]
+on:
+  push:
+    tags:
+      - "v*.*.*"
 
 jobs:
-  build:
+  release:
     runs-on: ${{ matrix.OS }}
     strategy:
       matrix:
@@ -70,6 +73,5 @@ jobs:
 
       - name: Release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
         with:
           files: /tmp/articats/*
