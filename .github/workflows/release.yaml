@@ -1,12 +1,9 @@
 name: Release
 
-on:
-  push:
-    tags:
-      - "v*.*.*"
+on: [push]
 
 jobs:
-  release:
+  build:
     runs-on: ${{ matrix.OS }}
     strategy:
       matrix:
@@ -71,7 +68,29 @@ jobs:
       - name: Build executable for ${{ matrix.OS }}
         run: ${{ matrix.BUILD_CMD }}
 
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.OS }}-artifacts
+          path: /tmp/articats/*
+          if-no-files-found: error
+
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          path: /tmp/artifacts
+
+      - name: Display structure of downloaded files
+        run: ls -R
+        working-directory: /tmp/artifacts
+
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
-          files: /tmp/articats/*
+          fail_on_unmatched_files: true
+          files: |
+            /tmp/artifacts/ubuntu-latest/*
+            /tmp/artifacts/macos-11/*
+            /tmp/artifacts/windows/*
