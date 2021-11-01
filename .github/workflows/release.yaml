@@ -15,8 +15,7 @@ jobs:
             PYTHON_VERSION: 3.8.12
             BUILD_CMD: |
                 export PYTHONHASHSEED=42
-                export CIRCLE_SHORT_SHA1=$(eval echo $GITHUB_SHA | cut -c -7)
-                export BUILD_FILE_NAME=operator-cli-${CIRCLE_SHORT_SHA1}-linux-amd64;
+                export BUILD_FILE_NAME=operator-cli-${{ steps.get_version.outputs.VERSION }}-linux-amd64;
                 mkdir ${BUILD_FILE_NAME};
                 poetry run pyinstaller --onefile --hidden-import multiaddr.codecs.uint16be --collect-data operator_cli ./operator_cli/main.py --name operator-cli --distpath ./${BUILD_FILE_NAME};
                 tar -zcvf ${BUILD_FILE_NAME}.tar.gz ./${BUILD_FILE_NAME};
@@ -28,8 +27,7 @@ jobs:
             PYTHON_VERSION: 3.8.12
             BUILD_CMD: |
               export PYTHONHASHSEED=42
-              export CIRCLE_SHORT_SHA1=$(eval echo $GITHUB_SHA | cut -c -7)
-              export BUILD_FILE_NAME=operator-cli-${CIRCLE_SHORT_SHA1}-darwin-amd64;
+              export BUILD_FILE_NAME=operator-cli-${{ steps.get_version.outputs.VERSION }}-darwin-amd64;
               mkdir ${BUILD_FILE_NAME};
               poetry run pyinstaller --onefile --hidden-import multiaddr.codecs.uint16be --collect-data operator_cli ./operator_cli/main.py --name operator-cli --distpath ./${BUILD_FILE_NAME};
               tar -zcvf ${BUILD_FILE_NAME}.tar.gz ./${BUILD_FILE_NAME};
@@ -40,8 +38,7 @@ jobs:
           - OS: windows-latest
             PYTHON_VERSION: 3.8.10
             BUILD_CMD: |
-              $CIRCLE_SHORT_SHA1 = $env:GITHUB_SHA.substring(0,7)
-              $BUILD_FILE_NAME = "operator-cli-" + $CIRCLE_SHORT_SHA1 + "-windows-amd64"
+              $BUILD_FILE_NAME = "operator-cli-" + ${{ steps.get_version.outputs.VERSION }} + "-windows-amd64"
               $BUILD_FILE_NAME_PATH = ".\" + $BUILD_FILE_NAME
               poetry run pyinstaller --onefile --hidden-import multiaddr.codecs.uint16be --collect-data operator_cli ./operator_cli/main.py --name operator-cli --distpath $BUILD_FILE_NAME_PATH
               $ZIP_FILE_NAME = $BUILD_FILE_NAME + ".zip"
@@ -68,6 +65,10 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction --no-root
 
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
+
       - name: Build executable for ${{ matrix.OS }}
         run: ${{ matrix.BUILD_CMD }}
 
@@ -91,11 +92,18 @@ jobs:
         run: ls -R
         working-directory: /tmp/artifacts
 
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
+
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
           fail_on_unmatched_files: true
           files: |
-            /tmp/artifacts/ubuntu-latest/*
-            /tmp/artifacts/macos-11/*
-            /tmp/artifacts/windows/*
+            /tmp/artifacts/ubuntu-latest/operator-cli-${{ steps.get_version.outputs.VERSION }}-linux-amd64.tar.gz
+            /tmp/artifacts/ubuntu-latest/operator-cli-${{ steps.get_version.outputs.VERSION }}-linux-amd64.sha256
+            /tmp/artifacts/macos-11/operator-cli-${{ steps.get_version.outputs.VERSION }}-darwin-amd64.tar.gz
+            /tmp/artifacts/macos-11/operator-cli-${{ steps.get_version.outputs.VERSION }}-darwin-amd64.sha256
+            /tmp/artifacts/windows/operator-cli-${{ steps.get_version.outputs.VERSION }}-windows-amd64.zip
+            /tmp/artifacts/windows/operator-cli-${{ steps.get_version.outputs.VERSION }}-windows-amd64.sha256
