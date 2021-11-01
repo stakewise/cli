@@ -72,13 +72,15 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.OS }}-artifacts
-          path: /tmp/articats/*
+          path: /tmp/artifacts/*
           if-no-files-found: error
 
   release:
+    needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v2
+      - name: Download all artifacts
+        uses: actions/download-artifact@v2
         with:
           path: /tmp/artifacts
 
