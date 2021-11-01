@@ -15,20 +15,20 @@ from py_ecc.bls import G2ProofOfPossession
 from web3 import Web3
 from web3.beacon import Beacon
 
-from operatorcli.eth1 import (
+from operator_cli.eth1 import (
     get_operators_init_merkle_proofs,
     get_validator_operator_address,
 )
-from operatorcli.eth2 import (
+from operator_cli.eth2 import (
     EXITED_STATUSES,
     generate_password,
     get_mnemonic_signing_key,
     get_validators,
 )
-from operatorcli.graphql import get_stakewise_gql_client
-from operatorcli.ipfs import get_operator_deposit_datum
-from operatorcli.settings import VALIDATORS_NAMESPACE, VAULT_VALIDATORS_MOUNT_POINT
-from operatorcli.types import SigningKey, VaultKeystore, VaultState
+from operator_cli.graphql import get_stakewise_gql_client
+from operator_cli.ipfs import get_operator_deposit_datum
+from operator_cli.settings import VALIDATORS_NAMESPACE, VAULT_VALIDATORS_MOUNT_POINT
+from operator_cli.types import SigningKey, VaultKeystore, VaultState
 
 MAX_KEYS_PER_VALIDATOR = 100
 

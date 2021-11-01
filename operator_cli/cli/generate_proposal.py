@@ -2,8 +2,8 @@ import click
 from eth2deposit.settings import MAINNET, get_chain_setting
 from eth_utils import is_address, to_checksum_address
 
-from operatorcli.eth1 import check_operator_exists
-from operatorcli.eth2 import (
+from operator_cli.eth1 import check_operator_exists
+from operator_cli.eth2 import (
     FINALIZE_DEPOSIT_AMOUNT,
     INITIALIZE_DEPOSIT_AMOUNT,
     LANGUAGES,
@@ -12,9 +12,9 @@ from operatorcli.eth2 import (
     generate_unused_validator_keys,
     validate_mnemonic,
 )
-from operatorcli.graphql import get_ethereum_gql_client, get_stakewise_gql_client
-from operatorcli.ipfs import upload_deposit_datum
-from operatorcli.settings import SUPPORTED_CHAINS
+from operator_cli.graphql import get_ethereum_gql_client, get_stakewise_gql_client
+from operator_cli.ipfs import upload_deposit_datum
+from operator_cli.settings import SUPPORTED_CHAINS
 
 
 def validate_operator_address(value):

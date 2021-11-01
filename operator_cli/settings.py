@@ -31,7 +31,7 @@ VALIDATORS_NAMESPACE = config("VALIDATORS_NAMESPACE", default="validators")
 
 ETHEREUM_MAINNET_SUBGRAPH_URL = config(
     "ETHEREUM_MAINNET_SUBGRAPH_URL",
-    default="https://api.thegraph.com/subgraphs/name/stakewise/ethereum-mainet",
+    default="https://api.thegraph.com/subgraphs/name/stakewise/ethereum-mainnet",
 )
 ETHEREUM_GOERLI_SUBGRAPH_URL = config(
     "ETHEREUM_GOERLI_SUBGRAPH_URL",

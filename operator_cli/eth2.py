@@ -31,10 +31,10 @@ from web3 import Web3
 from web3.beacon import Beacon
 from web3.types import Wei
 
-from operatorcli.graphql import REGISTRATIONS_QUERY
-from operatorcli.merkle_tree import MerkleTree
-from operatorcli.settings import WITHDRAWAL_CREDENTIALS
-from operatorcli.types import (
+from operator_cli.graphql import REGISTRATIONS_QUERY
+from operator_cli.merkle_tree import MerkleTree
+from operator_cli.settings import WITHDRAWAL_CREDENTIALS
+from operator_cli.types import (
     BLSPrivkey,
     Bytes4,
     Bytes32,
