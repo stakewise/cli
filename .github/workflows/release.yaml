@@ -38,7 +38,8 @@ jobs:
           - OS: windows-latest
             PYTHON_VERSION: 3.8.10
             BUILD_CMD: |
-              $BUILD_FILE_NAME = "operator-cli-" + $env:RELEASE_VERSION + "-windows-amd64"
+              $RELEASE_VERSION = $env:RELEASE_VERSION
+              $BUILD_FILE_NAME = "operator-cli-" + $RELEASE_VERSION + "-windows-amd64"
               $BUILD_FILE_NAME_PATH = ".\" + $BUILD_FILE_NAME
               poetry run pyinstaller --onefile --hidden-import multiaddr.codecs.uint16be --collect-data operator_cli ./operator_cli/main.py --name operator-cli --distpath $BUILD_FILE_NAME_PATH
               $ZIP_FILE_NAME = $BUILD_FILE_NAME + ".zip"
