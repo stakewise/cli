@@ -12,7 +12,7 @@ jobs:
             PYTHON_VERSION: 3.8.12
             BUILD_CMD: |
                 export PYTHONHASHSEED=42
-                export CIRCLE_SHORT_SHA1=$(eval echo $CIRCLE_SHA1 | cut -c -7)
+                export CIRCLE_SHORT_SHA1=$(eval echo $GITHUB_SHA | cut -c -7)
                 export BUILD_FILE_NAME=operator-cli-${CIRCLE_SHORT_SHA1}-linux-amd64;
                 mkdir ${BUILD_FILE_NAME};
                 poetry run pyinstaller --onefile --hidden-import multiaddr.codecs.uint16be --collect-data operator_cli ./operator_cli/main.py --name operator-cli --distpath ./${BUILD_FILE_NAME};
@@ -25,7 +25,7 @@ jobs:
             PYTHON_VERSION: 3.8.12
             BUILD_CMD: |
               export PYTHONHASHSEED=42
-              export CIRCLE_SHORT_SHA1=$(eval echo $CIRCLE_SHA1 | cut -c -7)
+              export CIRCLE_SHORT_SHA1=$(eval echo $GITHUB_SHA | cut -c -7)
               export BUILD_FILE_NAME=operator-cli-${CIRCLE_SHORT_SHA1}-darwin-amd64;
               mkdir ${BUILD_FILE_NAME};
               poetry run pyinstaller --onefile --hidden-import multiaddr.codecs.uint16be --collect-data operator_cli ./operator_cli/main.py --name operator-cli --distpath ./${BUILD_FILE_NAME};
@@ -37,7 +37,7 @@ jobs:
           - OS: windows-latest
             PYTHON_VERSION: 3.8.10
             BUILD_CMD: |
-              $CIRCLE_SHORT_SHA1 = $env:CIRCLE_SHA1.substring(0,7)
+              $CIRCLE_SHORT_SHA1 = $env:GITHUB_SHA.substring(0,7)
               $BUILD_FILE_NAME = "operator-cli-" + $CIRCLE_SHORT_SHA1 + "-windows-amd64"
               $BUILD_FILE_NAME_PATH = ".\" + $BUILD_FILE_NAME
               poetry run pyinstaller --onefile --hidden-import multiaddr.codecs.uint16be --collect-data operator_cli ./operator_cli/main.py --name operator-cli --distpath $BUILD_FILE_NAME_PATH
@@ -54,12 +54,6 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.PYTHON_VERSION }}
-
-      - name: Load cached Poetry installation
-        uses: actions/cache@v2
-        with:
-          path: ~/.local
-          key: poetry-0
 
       - name: Install Poetry
         uses: snok/install-poetry@v1
