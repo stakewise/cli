@@ -2,8 +2,8 @@ import click
 from eth2deposit.settings import MAINNET, get_chain_setting
 from eth_utils import is_address, to_checksum_address
 
-from operatorcli.eth1 import check_operator_exists
-from operatorcli.eth2 import (
+from operator_cli.eth1 import check_operator_exists
+from operator_cli.eth2 import (
     FINALIZE_DEPOSIT_AMOUNT,
     INITIALIZE_DEPOSIT_AMOUNT,
     LANGUAGES,
@@ -12,9 +12,9 @@ from operatorcli.eth2 import (
     generate_unused_validator_keys,
     validate_mnemonic,
 )
-from operatorcli.graphql import get_ethereum_gql_client, get_stakewise_gql_client
-from operatorcli.ipfs import upload_deposit_datum
-from operatorcli.settings import SUPPORTED_CHAINS
+from operator_cli.graphql import get_ethereum_gql_client, get_stakewise_gql_client
+from operator_cli.ipfs import upload_deposit_datum
+from operator_cli.settings import SUPPORTED_CHAINS
 
 
 def validate_operator_address(value):
@@ -54,19 +54,13 @@ def validate_share_percentage(value) -> int:
     type=click.Choice(SUPPORTED_CHAINS.keys(), case_sensitive=False),
 )
 @click.option(
-    "--new-cluster",
-    required=True,
+    "--existing-vault",
     is_flag=True,
-    help="Indicates whether the proposal is created for the new validators cluster."
-    " For every new validators cluster, the new mnemonic will be generated.",
-    prompt="The proposal is created for the new validators cluster",
+    help="Indicates whether the proposal is created for the existing keys vault."
+    " For every new keys vault, the new mnemonic must be generated.",
 )
-def generate_proposal(chain: str, new_cluster: bool) -> None:
-    if new_cluster:
-        click.confirm(
-            "I confirm that multiple mnemonics will not be used for the single validators cluster",
-            abort=True,
-        )
+def generate_proposal(chain: str, existing_vault: bool) -> None:
+    if not existing_vault:
         language = click.prompt(
             "Choose your mnemonic language",
             default="english",
@@ -74,10 +68,6 @@ def generate_proposal(chain: str, new_cluster: bool) -> None:
         )
         mnemonic = create_new_mnemonic(language)
     else:
-        click.confirm(
-            "I confirm that the same mnemonic is not used for multiple validators clusters",
-            abort=True,
-        )
         mnemonic = click.prompt(
             'Enter your mnemonic separated by spaces (" ")',
             value_proc=validate_mnemonic,
@@ -85,11 +75,12 @@ def generate_proposal(chain: str, new_cluster: bool) -> None:
         )
 
     click.confirm(
-        "I confirm that all (if any) validator keys previously approved by the DAO have proceeded to staking",
+        "I confirm that this mnemonic will be used only for one vault",
         abort=True,
     )
+
     keys_count = click.prompt(
-        "Enter the number of new validator keys you would like to host",
+        "Enter the number of new validator keys you would like to generate",
         type=click.IntRange(1, 1000000),
     )
 
@@ -126,7 +117,7 @@ def generate_proposal(chain: str, new_cluster: bool) -> None:
 
     # 4. Generate proposal specification part
     operator = click.prompt(
-        "Enter the wallet address that will receive rETH2 rewards."
+        "Enter the wallet address that will receive rewards."
         " If you already run StakeWise validators, please re-use the same wallet address",
         value_proc=validate_operator_address,
     )
@@ -158,7 +149,7 @@ def generate_proposal(chain: str, new_cluster: bool) -> None:
 
 
 - If the proposal will be approved, the operator must perform the following steps:
-    * Call `./operator.sh sync-keys` with the same mnemonic as used for the proposal
+    * Call `./operator.sh sync-vault` with the same mnemonic as used for the proposal
     * Create or update validators and make sure the new keys are added
     * Call `commitOperator` from the `{operator}` address together with 1 ETH collateral
 """
@@ -166,7 +157,7 @@ def generate_proposal(chain: str, new_cluster: bool) -> None:
         specification += f"""
 
 - If the proposal will be approved, the operator must perform the following steps:
-    * Call `./operator.sh sync-keys` with the same mnemonic as used for generating the proposal
+    * Call `./operator.sh sync-vault` with the same mnemonic as used for generating the proposal
     * Create or update validators and make sure the new keys are added
     * Call `commitOperator` from the `{operator}` address
 """

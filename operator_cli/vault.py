@@ -15,20 +15,20 @@ from py_ecc.bls import G2ProofOfPossession
 from web3 import Web3
 from web3.beacon import Beacon
 
-from operatorcli.eth1 import (
+from operator_cli.eth1 import (
     get_operators_init_merkle_proofs,
     get_validator_operator_address,
 )
-from operatorcli.eth2 import (
+from operator_cli.eth2 import (
     EXITED_STATUSES,
     generate_password,
     get_mnemonic_signing_key,
     get_validators,
 )
-from operatorcli.graphql import get_stakewise_gql_client
-from operatorcli.ipfs import get_operator_deposit_datum
-from operatorcli.settings import VALIDATORS_NAMESPACE, VAULT_VALIDATORS_MOUNT_POINT
-from operatorcli.types import SigningKey, VaultKeystore, VaultState
+from operator_cli.graphql import get_stakewise_gql_client
+from operator_cli.ipfs import get_operator_deposit_datum
+from operator_cli.settings import VALIDATORS_NAMESPACE, VAULT_VALIDATORS_MOUNT_POINT
+from operator_cli.types import SigningKey, VaultKeystore, VaultState
 
 MAX_KEYS_PER_VALIDATOR = 100
 
@@ -52,18 +52,25 @@ def generate_validator_name(validator_names: Set[str]) -> str:
 
 class Vault(object):
     def __init__(
-        self, vault_client: VaultClient, beacon: Beacon, chain: str, mnemonic: str
+        self,
+        vault_client: VaultClient,
+        beacon: Beacon,
+        chain: str,
+        mnemonic: str,
+        is_legacy: bool,
     ):
         self.vault_client = vault_client
         self.sw_gql_client = get_stakewise_gql_client(chain)
         self.beacon = beacon
         self.mnemonic = mnemonic
+        self.is_legacy = is_legacy
+        self.check_mnemonic()
 
     @cached_property
     def vault_validator_names(self) -> Set[str]:
         """Fetches names of vault validators."""
         try:
-            names = self.vault_client.secrets.kv.v1.list_secrets(
+            names = self.vault_client.secrets.kv.list_secrets(
                 path="", mount_point=VAULT_VALIDATORS_MOUNT_POINT
             )["data"]["keys"]
             return set([name.strip("/") for name in names])
@@ -84,7 +91,7 @@ class Vault(object):
                 try:
                     validator_keystores: Dict[
                         str, str
-                    ] = self.vault_client.secrets.kv.v1.read_secret(
+                    ] = self.vault_client.secrets.kv.read_secret(
                         path=f"{validator_name}/keystores",
                         mount_point=VAULT_VALIDATORS_MOUNT_POINT,
                     )[
@@ -97,7 +104,7 @@ class Vault(object):
                     keystore = json.loads(keystore_str)
                     public_key = add_0x_prefix(HexStr(keystore["pubkey"]))
                     if public_key in result:
-                        raise RuntimeError(
+                        raise click.ClickException(
                             f"Public key {public_key} is presented in {validator_name}"
                             f" and {result[public_key]} vault validators."
                             f" You must immediately stop both validators to avoid slashing!"
@@ -124,7 +131,7 @@ class Vault(object):
                 for deposit_data in deposit_datum:
                     public_key = deposit_data["public_key"]
                     if public_key in result:
-                        raise RuntimeError(
+                        raise click.ClickException(
                             f"Public key {public_key} is presented in"
                             f" deposit datum for {operator_addr} and {result[public_key]} operators"
                         )
@@ -135,7 +142,7 @@ class Vault(object):
     @cached_property
     def operator_address(self) -> Union[ChecksumAddress, None]:
         """Returns vault's operator address."""
-        signing_key = get_mnemonic_signing_key(self.mnemonic, 0)
+        signing_key = get_mnemonic_signing_key(self.mnemonic, 0, self.is_legacy)
         first_public_key = Web3.toHex(
             primitive=G2ProofOfPossession.SkToPk(signing_key.key)
         )
@@ -175,7 +182,9 @@ class Vault(object):
             processed_count = 0
             from_index = 0
             while processed_count != deposit_data_count:
-                signing_key = get_mnemonic_signing_key(self.mnemonic, from_index)
+                signing_key = get_mnemonic_signing_key(
+                    self.mnemonic, from_index, self.is_legacy
+                )
                 public_key = Web3.toHex(G2ProofOfPossession.SkToPk(signing_key.key))
 
                 if public_key not in self.vault_current_state:
@@ -296,13 +305,13 @@ class Vault(object):
     def get_or_create_keystore_password(self, validator_name) -> str:
         """Retrieves validator keystore password if exists or creates a new one."""
         try:
-            password = self.vault_client.secrets.kv.v1.read_secret(
+            password = self.vault_client.secrets.kv.read_secret(
                 path=f"{validator_name}/password",
                 mount_point=VAULT_VALIDATORS_MOUNT_POINT,
             )["data"]["password.txt"]
         except InvalidPath:
             password = generate_password()
-            self.vault_client.secrets.kv.v1.create_or_update_secret(
+            self.vault_client.secrets.kv.create_or_update_secret(
                 path=f"{validator_name}/password",
                 secret={"password.txt": password},
                 mount_point=VAULT_VALIDATORS_MOUNT_POINT,
@@ -342,11 +351,11 @@ class Vault(object):
             for validator_name in removed_validators:
                 self.vault_client.sys.delete_policy(validator_name)
                 self.vault_client.delete_kubernetes_role(validator_name)
-                self.vault_client.secrets.kv.v1.delete_secret(
+                self.vault_client.secrets.kv.delete_secret(
                     path=f"{validator_name}/password",
                     mount_point=VAULT_VALIDATORS_MOUNT_POINT,
                 )
-                self.vault_client.secrets.kv.v1.delete_secret(
+                self.vault_client.secrets.kv.delete_secret(
                     path=f"{validator_name}/keystores",
                     mount_point=VAULT_VALIDATORS_MOUNT_POINT,
                 )
@@ -392,7 +401,7 @@ class Vault(object):
             show_pos=True,
         ) as _validators_keystores:
             for validator_name in _validators_keystores:
-                self.vault_client.secrets.kv.v1.create_or_update_secret(
+                self.vault_client.secrets.kv.create_or_update_secret(
                     path=f"{validator_name}/keystores",
                     secret=validators_keystores[validator_name],
                     mount_point=VAULT_VALIDATORS_MOUNT_POINT,
@@ -410,7 +419,7 @@ class Vault(object):
                 try:
                     validator_keystores: Dict[
                         str, str
-                    ] = self.vault_client.secrets.kv.v1.read_secret(
+                    ] = self.vault_client.secrets.kv.read_secret(
                         path=f"{validator_name}/keystores",
                         mount_point=VAULT_VALIDATORS_MOUNT_POINT,
                     )[
@@ -427,12 +436,36 @@ class Vault(object):
                         int.from_bytes(private_key, byteorder="big")
                     )
                     if public_key in public_keys:
-                        raise RuntimeError(
+                        raise click.ClickException(
                             f"Public key {Web3.toHex(public_key)} is presented in multiple keystores"
                         )
 
                     public_keys.add(public_key)
                     if Web3.toBytes(hexstr=keystore["pubkey"]) != public_key:
-                        raise RuntimeError(
+                        raise click.ClickException(
                             f"Failed to verify keystore {keystore_name} for validator {validator_name}"
                         )
+
+    def check_mnemonic(self) -> None:
+        """Checks whether the mnemonic is correct."""
+        if not self.vault_current_state:
+            return
+
+        public_key1 = next(iter(self.vault_current_state))
+        vault_keystore = self.vault_current_state[public_key1]
+        keystore = ScryptKeystore.from_json(json.loads(vault_keystore["keystore"]))
+
+        if self.is_legacy:
+            from_index = int(keystore.path.split("/")[-1])
+        else:
+            from_index = int(keystore.path.split("/")[3])
+
+        signing_key = get_mnemonic_signing_key(
+            mnemonic=self.mnemonic, from_index=from_index, is_legacy=self.is_legacy
+        )
+        public_key2 = Web3.toHex(G2ProofOfPossession.SkToPk(signing_key.key))
+
+        if public_key1 != public_key2:
+            raise click.ClickException(
+                "The vault keys does not belong to the provided mnemonic."
+            )

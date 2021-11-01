@@ -7,7 +7,7 @@ license = "AGPL-3.0-only"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "==3.8.12"
+python = ">=3.8,<3.9"
 python-decouple = "==3.4"
 web3 = "==5.23.1"
 py-ecc = "==5.2.0"
@@ -27,6 +27,7 @@ isort = "==5.9.3"
 flake8-black = "==0.2.3"
 flake8-bugbear = "==21.9.1"
 pre-commit = "==2.15.0"
+pyinstaller = "==4.6"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

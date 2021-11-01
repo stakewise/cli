@@ -4,8 +4,8 @@ import click
 
 warnings.filterwarnings("ignore")
 
-from operatorcli.cli.generate_proposal import generate_proposal  # noqa: E402
-from operatorcli.cli.sync_vault import sync_vault  # noqa: E402
+from operator_cli.cli.generate_proposal import generate_proposal  # noqa: E402
+from operator_cli.cli.sync_vault import sync_vault  # noqa: E402
 
 
 @click.group()

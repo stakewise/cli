@@ -31,10 +31,10 @@ from web3 import Web3
 from web3.beacon import Beacon
 from web3.types import Wei
 
-from operatorcli.graphql import REGISTRATIONS_QUERY
-from operatorcli.merkle_tree import MerkleTree
-from operatorcli.settings import WITHDRAWAL_CREDENTIALS
-from operatorcli.types import (
+from operator_cli.graphql import REGISTRATIONS_QUERY
+from operator_cli.merkle_tree import MerkleTree
+from operator_cli.settings import WITHDRAWAL_CREDENTIALS
+from operator_cli.types import (
     BLSPrivkey,
     Bytes4,
     Bytes32,
@@ -116,7 +116,6 @@ def generate_unused_validator_keys(
 ) -> List[KeyPair]:
     """Generates specified number of unused validator key-pairs from the mnemonic."""
     pub_key_to_priv_key: Dict[HexStr, BLSPrivkey] = {}
-    seed = get_seed(mnemonic=mnemonic, password="")
     with click.progressbar(
         length=keys_count,
         label="Creating validator keys:\t\t",
@@ -131,19 +130,14 @@ def generate_unused_validator_keys(
             # generate keys in chunks
             public_keys_chunk: List[HexStr] = []
             while len(public_keys_chunk) != chunk_size:
-                # derive private key
-                private_key = BLSPrivkey(derive_master_SK(seed))
-                signing_key_path = f"m/{PURPOSE}/{COIN_TYPE}/{from_index}/0/0"
-                for node in path_to_nodes(signing_key_path):
-                    private_key = BLSPrivkey(
-                        derive_child_SK(parent_SK=private_key, index=node)
-                    )
+                # derive signing key
+                signing_key = get_mnemonic_signing_key(mnemonic, from_index)
 
                 # derive public key
-                public_key = w3.toHex(G2ProofOfPossession.SkToPk(private_key))
+                public_key = w3.toHex(G2ProofOfPossession.SkToPk(signing_key.key))
 
                 # store keypairs
-                pub_key_to_priv_key[public_key] = private_key
+                pub_key_to_priv_key[public_key] = signing_key.key
                 public_keys_chunk.append(public_key)
 
                 # increase index for generating other keys
@@ -166,11 +160,17 @@ def generate_unused_validator_keys(
     ]
 
 
-def get_mnemonic_signing_key(mnemonic: str, from_index: int) -> SigningKey:
+def get_mnemonic_signing_key(
+    mnemonic: str, from_index: int, is_legacy: bool = False
+) -> SigningKey:
     """Returns the signing key of the mnemonic at a specific index."""
     seed = get_seed(mnemonic=mnemonic, password="")
     private_key = BLSPrivkey(derive_master_SK(seed))
-    signing_key_path = f"m/{PURPOSE}/{COIN_TYPE}/{from_index}/0/0"
+    if is_legacy:
+        signing_key_path = f"m/{PURPOSE}/{COIN_TYPE}/0/0/{from_index}"
+    else:
+        signing_key_path = f"m/{PURPOSE}/{COIN_TYPE}/{from_index}/0/0"
+
     for node in path_to_nodes(signing_key_path):
         private_key = BLSPrivkey(derive_child_SK(parent_SK=private_key, index=node))
 

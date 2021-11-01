@@ -3,8 +3,8 @@ from typing import Any, Dict, List
 import backoff
 import ipfshttpclient
 
-from operatorcli.settings import IPFS_ENDPOINT
-from operatorcli.types import MerkleDepositData
+from operator_cli.settings import IPFS_ENDPOINT
+from operator_cli.types import MerkleDepositData
 
 
 @backoff.on_exception(backoff.expo, Exception, max_time=180)

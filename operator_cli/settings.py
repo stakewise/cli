@@ -4,16 +4,16 @@ from typing import Dict
 from decouple import config
 from eth2deposit.settings import (
     MAINNET,
-    PYRMONT,
+    PRATER,
     BaseChainSetting,
     MainnetSetting,
-    PyrmontSetting,
+    PraterSetting,
 )
 
 # supported networks
 SUPPORTED_CHAINS: Dict[str, BaseChainSetting] = {
     MAINNET: MainnetSetting,
-    PYRMONT: PyrmontSetting,
+    PRATER: PraterSetting,
 }
 
 OUTPUT_DIR = config("OUTPUT_DIR", default=os.path.join(os.getcwd(), "output"))
@@ -31,7 +31,7 @@ VALIDATORS_NAMESPACE = config("VALIDATORS_NAMESPACE", default="validators")
 
 ETHEREUM_MAINNET_SUBGRAPH_URL = config(
     "ETHEREUM_MAINNET_SUBGRAPH_URL",
-    default="https://api.thegraph.com/subgraphs/name/stakewise/ethereum-mainet",
+    default="https://api.thegraph.com/subgraphs/name/stakewise/ethereum-mainnet",
 )
 ETHEREUM_GOERLI_SUBGRAPH_URL = config(
     "ETHEREUM_GOERLI_SUBGRAPH_URL",

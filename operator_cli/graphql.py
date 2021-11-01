@@ -2,7 +2,7 @@ from eth2deposit.settings import MAINNET
 from gql import Client, gql
 from gql.transport.requests import RequestsHTTPTransport
 
-from operatorcli.settings import (
+from operator_cli.settings import (
     ETHEREUM_GOERLI_SUBGRAPH_URL,
     ETHEREUM_MAINNET_SUBGRAPH_URL,
     STAKEWISE_GOERLI_SUBGRAPH_URL,
