@@ -65,4 +65,4 @@ COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
 COPY . ./
 
 # Start application
-ENTRYPOINT ["python", "main.py"]
+ENTRYPOINT ["python"]

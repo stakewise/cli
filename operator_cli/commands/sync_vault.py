@@ -29,14 +29,7 @@ def get_beacon_client() -> Beacon:
     prompt="Choose the (mainnet or testnet) network/chain name",
     type=click.Choice(SUPPORTED_CHAINS.keys(), case_sensitive=False),
 )
-@click.option(
-    "--legacy",
-    default=False,
-    is_flag=True,
-    help="Indicates whether the legacy key derivation path should be used."
-    " Skip this flag in case you are not migrating from the legacy vault.",
-)
-def sync_vault(chain: str, legacy: bool) -> None:
+def sync_vault(chain: str) -> None:
     while True:
         try:
             vault_client = get_vault_client()
@@ -59,7 +52,7 @@ def sync_vault(chain: str, legacy: bool) -> None:
 
         click.echo("Error: failed to connect to the ETH2 server with provided URL")
 
-    vault_client.kv.default_kv_version = 1
+    vault_client.secrets.kv.default_kv_version = 1
     try:
         vault_client.sys.enable_secrets_engine(
             backend_type="kv",
@@ -86,11 +79,7 @@ def sync_vault(chain: str, legacy: bool) -> None:
     )
 
     vault = Vault(
-        vault_client=vault_client,
-        beacon=beacon_client,
-        chain=chain,
-        mnemonic=mnemonic,
-        is_legacy=legacy,
+        vault_client=vault_client, beacon=beacon_client, chain=chain, mnemonic=mnemonic
     )
 
     vault.apply_vault_changes()

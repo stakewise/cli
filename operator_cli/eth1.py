@@ -5,7 +5,7 @@ from eth_typing import ChecksumAddress, HexStr
 from gql import Client as GqlClient
 from web3 import Web3
 
-from operator_cli.graphql import OPERATOR_QUERY, OPERATORS_QUERY, VALIDATORS_QUERY
+from operator_cli.queries import OPERATOR_QUERY, OPERATORS_QUERY, VALIDATORS_QUERY
 
 
 @backoff.on_exception(backoff.expo, Exception, max_time=180)
@@ -49,3 +49,14 @@ def get_validator_operator_address(
         return None
 
     return Web3.toChecksumAddress(validators[0]["operator"]["id"])
+
+
+@backoff.on_exception(backoff.expo, Exception, max_time=180)
+def is_validator_registered(gql_client: GqlClient, public_key: HexStr) -> bool:
+    """Checks whether validator is registered."""
+    result: Dict = gql_client.execute(
+        document=VALIDATORS_QUERY,
+        variable_values=dict(public_key=public_key),
+    )
+    validators = result["validators"]
+    return bool(validators)

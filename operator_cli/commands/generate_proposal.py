@@ -12,8 +12,8 @@ from operator_cli.eth2 import (
     generate_unused_validator_keys,
     validate_mnemonic,
 )
-from operator_cli.graphql import get_ethereum_gql_client, get_stakewise_gql_client
 from operator_cli.ipfs import upload_deposit_datum
+from operator_cli.queries import get_ethereum_gql_client, get_stakewise_gql_client
 from operator_cli.settings import SUPPORTED_CHAINS
 
 
@@ -149,7 +149,7 @@ def generate_proposal(chain: str, existing_vault: bool) -> None:
 
 
 - If the proposal will be approved, the operator must perform the following steps:
-    * Call `./operator.sh sync-vault` with the same mnemonic as used for the proposal
+    * Call `./operator-cli sync-vault` with the same mnemonic as used for the proposal
     * Create or update validators and make sure the new keys are added
     * Call `commitOperator` from the `{operator}` address together with 1 ETH collateral
 """
@@ -157,7 +157,7 @@ def generate_proposal(chain: str, existing_vault: bool) -> None:
         specification += f"""
 
 - If the proposal will be approved, the operator must perform the following steps:
-    * Call `./operator.sh sync-vault` with the same mnemonic as used for generating the proposal
+    * Call `./operator-cli sync-vault` with the same mnemonic as used for generating the proposal
     * Create or update validators and make sure the new keys are added
     * Call `commitOperator` from the `{operator}` address
 """

@@ -31,10 +31,10 @@ from web3 import Web3
 from web3.beacon import Beacon
 from web3.types import Wei
 
-from operator_cli.graphql import REGISTRATIONS_QUERY
 from operator_cli.merkle_tree import MerkleTree
-from operator_cli.settings import WITHDRAWAL_CREDENTIALS
-from operator_cli.types import (
+from operator_cli.queries import REGISTRATIONS_QUERY
+from operator_cli.settings import MIGRATE_LEGACY, WITHDRAWAL_CREDENTIALS
+from operator_cli.typings import (
     BLSPrivkey,
     Bytes4,
     Bytes32,
@@ -160,13 +160,11 @@ def generate_unused_validator_keys(
     ]
 
 
-def get_mnemonic_signing_key(
-    mnemonic: str, from_index: int, is_legacy: bool = False
-) -> SigningKey:
+def get_mnemonic_signing_key(mnemonic: str, from_index: int) -> SigningKey:
     """Returns the signing key of the mnemonic at a specific index."""
     seed = get_seed(mnemonic=mnemonic, password="")
     private_key = BLSPrivkey(derive_master_SK(seed))
-    if is_legacy:
+    if MIGRATE_LEGACY:
         signing_key_path = f"m/{PURPOSE}/{COIN_TYPE}/0/0/{from_index}"
     else:
         signing_key_path = f"m/{PURPOSE}/{COIN_TYPE}/{from_index}/0/0"
@@ -260,7 +258,7 @@ def generate_merkle_deposit_datum(
                 amount=str(deposit_amount),
                 withdrawal_credentials=WITHDRAWAL_CREDENTIALS,
                 deposit_data_root=w3.toHex(deposit_data_root),
-                proof=[],
+                proof="",
             )
             merkle_deposit_datum.append(deposit_data)
 
@@ -269,7 +267,7 @@ def generate_merkle_deposit_datum(
     # collect proofs
     for i, deposit_data in enumerate(merkle_deposit_datum):
         proof: List[HexStr] = merkle_tree.get_hex_proof(merkle_elements[i])
-        deposit_data["proof"] = proof
+        deposit_data["proof"] = ",".join(proof)
 
     # calculate merkle root
     merkle_root: HexStr = merkle_tree.get_hex_root()
