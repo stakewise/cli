@@ -1,7 +1,7 @@
 import os
 from typing import Dict
 
-from decouple import config
+from decouple import Csv, config
 from eth2deposit.settings import (
     MAINNET,
     PRATER,
@@ -22,9 +22,16 @@ WITHDRAWAL_CREDENTIALS = config(
     "WITHDRAWAL_CREDENTIALS",
     default="0x0100000000000000000000002296e122c1a20fca3cac3371357bdad3be0df079",
 )
-IPFS_ENDPOINT = config("IPFS_ENDPOINT", default="/dns/ipfs.infura.io/tcp/5001/https")
 
 # extra pins to pinata for redundancy
+IPFS_PIN_ENDPOINTS = config(
+    "IPFS_PIN_ENDPOINTS", cast=Csv(), default="/dns/ipfs.infura.io/tcp/5001/https"
+)
+IPFS_FETCH_ENDPOINTS = config(
+    "IPFS_FETCH_ENDPOINTS",
+    cast=Csv(),
+    default="https://gateway.pinata.cloud,http://cloudflare-ipfs.com,https://ipfs.io",
+)
 IPFS_PINATA_PIN_ENDPOINT = config(
     "IPFS_PINATA_ENDPOINT", default="https://api.pinata.cloud/pinning/pinJSONToIPFS"
 )
