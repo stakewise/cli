@@ -49,6 +49,8 @@ WORD_LISTS_PATH = os.path.join(os.path.dirname(__file__), "word_lists")
 
 LANGUAGES = get_languages(WORD_LISTS_PATH)
 
+SPECIAL_CHARS = "!@#$%^&*()_"
+
 # Set path as EIP-2334 format
 # https://eips.ethereum.org/EIPS/eip-2334
 PURPOSE = "12381"
@@ -191,10 +193,24 @@ def get_validators(
 
 
 def generate_password() -> str:
-    """generates secure password."""
-    alphabet = string.ascii_letters + string.digits + "!@#$%^&*()_"
-    password = "".join(secrets.choice(alphabet) for _ in range(20))
-    return password
+    """Generates secure password."""
+    alphabet = string.ascii_letters + string.digits + SPECIAL_CHARS
+    lower_set = set(string.ascii_lowercase)
+    upper_set = set(string.ascii_uppercase)
+    digits_set = set(string.digits)
+    special_set = set(SPECIAL_CHARS)
+    while True:
+        password = [secrets.choice(alphabet) for _ in range(20)]
+        password_set = set(password)
+        if not (
+            upper_set.intersection(password_set)
+            and lower_set.intersection(password_set)
+            and special_set.intersection(password_set)
+            and digits_set.intersection(password_set)
+        ):
+            continue
+
+        return "".join(password)
 
 
 def get_deposit_data_signature(
