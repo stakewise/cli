@@ -31,10 +31,10 @@ from web3 import Web3
 from web3.beacon import Beacon
 from web3.types import Wei
 
-from operator_cli.graphql import REGISTRATIONS_QUERY
 from operator_cli.merkle_tree import MerkleTree
-from operator_cli.settings import WITHDRAWAL_CREDENTIALS
-from operator_cli.types import (
+from operator_cli.queries import REGISTRATIONS_QUERY
+from operator_cli.settings import MIGRATE_LEGACY, WITHDRAWAL_CREDENTIALS
+from operator_cli.typings import (
     BLSPrivkey,
     Bytes4,
     Bytes32,
@@ -48,6 +48,8 @@ from operator_cli.types import (
 WORD_LISTS_PATH = os.path.join(os.path.dirname(__file__), "word_lists")
 
 LANGUAGES = get_languages(WORD_LISTS_PATH)
+
+SPECIAL_CHARS = "!@#$%^&*()_"
 
 # Set path as EIP-2334 format
 # https://eips.ethereum.org/EIPS/eip-2334
@@ -160,13 +162,11 @@ def generate_unused_validator_keys(
     ]
 
 
-def get_mnemonic_signing_key(
-    mnemonic: str, from_index: int, is_legacy: bool = False
-) -> SigningKey:
+def get_mnemonic_signing_key(mnemonic: str, from_index: int) -> SigningKey:
     """Returns the signing key of the mnemonic at a specific index."""
     seed = get_seed(mnemonic=mnemonic, password="")
     private_key = BLSPrivkey(derive_master_SK(seed))
-    if is_legacy:
+    if MIGRATE_LEGACY:
         signing_key_path = f"m/{PURPOSE}/{COIN_TYPE}/0/0/{from_index}"
     else:
         signing_key_path = f"m/{PURPOSE}/{COIN_TYPE}/{from_index}/0/0"
@@ -193,10 +193,24 @@ def get_validators(
 
 
 def generate_password() -> str:
-    """generates secure password."""
-    alphabet = string.ascii_letters + string.digits + "!@#$%^&*()_"
-    password = "".join(secrets.choice(alphabet) for _ in range(20))
-    return password
+    """Generates secure password."""
+    alphabet = string.ascii_letters + string.digits + SPECIAL_CHARS
+    lower_set = set(string.ascii_lowercase)
+    upper_set = set(string.ascii_uppercase)
+    digits_set = set(string.digits)
+    special_set = set(SPECIAL_CHARS)
+    while True:
+        password = [secrets.choice(alphabet) for _ in range(20)]
+        password_set = set(password)
+        if not (
+            upper_set.intersection(password_set)
+            and lower_set.intersection(password_set)
+            and special_set.intersection(password_set)
+            and digits_set.intersection(password_set)
+        ):
+            continue
+
+        return "".join(password)
 
 
 def get_deposit_data_signature(
@@ -260,7 +274,7 @@ def generate_merkle_deposit_datum(
                 amount=str(deposit_amount),
                 withdrawal_credentials=WITHDRAWAL_CREDENTIALS,
                 deposit_data_root=w3.toHex(deposit_data_root),
-                proof=[],
+                proof="",
             )
             merkle_deposit_datum.append(deposit_data)
 
@@ -269,7 +283,7 @@ def generate_merkle_deposit_datum(
     # collect proofs
     for i, deposit_data in enumerate(merkle_deposit_datum):
         proof: List[HexStr] = merkle_tree.get_hex_proof(merkle_elements[i])
-        deposit_data["proof"] = proof
+        deposit_data["proof"] = ",".join(proof)
 
     # calculate merkle root
     merkle_root: HexStr = merkle_tree.get_hex_root()

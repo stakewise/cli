@@ -1,1 +1,1 @@
-# Operator CLI
+# CLI

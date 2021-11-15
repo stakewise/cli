@@ -18,6 +18,7 @@ from web3.beacon import Beacon
 from operator_cli.eth1 import (
     get_operators_init_merkle_proofs,
     get_validator_operator_address,
+    is_validator_registered,
 )
 from operator_cli.eth2 import (
     EXITED_STATUSES,
@@ -25,12 +26,17 @@ from operator_cli.eth2 import (
     get_mnemonic_signing_key,
     get_validators,
 )
-from operator_cli.graphql import get_stakewise_gql_client
 from operator_cli.ipfs import get_operator_deposit_datum
-from operator_cli.settings import VALIDATORS_NAMESPACE, VAULT_VALIDATORS_MOUNT_POINT
-from operator_cli.types import SigningKey, VaultKeystore, VaultState
+from operator_cli.queries import get_stakewise_gql_client
+from operator_cli.settings import (
+    MIGRATE_LEGACY,
+    VALIDATORS_NAMESPACE,
+    VAULT_VALIDATORS_MOUNT_POINT,
+)
+from operator_cli.typings import SigningKey, VaultKeystore, VaultState
 
 MAX_KEYS_PER_VALIDATOR = 100
+LEGACY_TOTAL_KEYS = 1000
 
 VALIDATOR_POLICY = """
 path "%s/%s/*" {
@@ -57,13 +63,11 @@ class Vault(object):
         beacon: Beacon,
         chain: str,
         mnemonic: str,
-        is_legacy: bool,
     ):
         self.vault_client = vault_client
         self.sw_gql_client = get_stakewise_gql_client(chain)
         self.beacon = beacon
         self.mnemonic = mnemonic
-        self.is_legacy = is_legacy
         self.check_mnemonic()
 
     @cached_property
@@ -142,7 +146,7 @@ class Vault(object):
     @cached_property
     def operator_address(self) -> Union[ChecksumAddress, None]:
         """Returns vault's operator address."""
-        signing_key = get_mnemonic_signing_key(self.mnemonic, 0, self.is_legacy)
+        signing_key = get_mnemonic_signing_key(self.mnemonic, 0)
         first_public_key = Web3.toHex(
             primitive=G2ProofOfPossession.SkToPk(signing_key.key)
         )
@@ -170,31 +174,58 @@ class Vault(object):
 
     @cached_property
     def vault_missing_keypairs(self) -> OrderedDict[HexStr, SigningKey]:
-        """Returns ordered mapping of BLS public key to private key that are missing in the vault."""
-        deposit_data_count = len(self.operator_deposit_data_public_keys)
+        """
+        Returns ordered mapping of BLS public key to private key
+        that are in deposit data or active but are missing in the vault.
+        """
+        if MIGRATE_LEGACY and self.vault_current_state:
+            raise click.ClickException("Cannot migrate legacy keys to not empty vault")
+
         missed_keypairs: OrderedDict[HexStr, SigningKey] = collections.OrderedDict()
-        with click.progressbar(
-            length=deposit_data_count,
-            label="Checking vault missing keys\t\t",
-            show_percent=False,
-            show_pos=True,
-        ) as bar:
-            processed_count = 0
-            from_index = 0
-            while processed_count != deposit_data_count:
-                signing_key = get_mnemonic_signing_key(
-                    self.mnemonic, from_index, self.is_legacy
-                )
-                public_key = Web3.toHex(G2ProofOfPossession.SkToPk(signing_key.key))
-
-                if public_key not in self.vault_current_state:
+        if MIGRATE_LEGACY:
+            with click.progressbar(
+                range(LEGACY_TOTAL_KEYS),
+                label=f"Generating {LEGACY_TOTAL_KEYS} legacy keys\t\t",
+                show_percent=False,
+                show_pos=True,
+            ) as indexes:
+                for from_index in indexes:
+                    signing_key = get_mnemonic_signing_key(self.mnemonic, from_index)
+                    public_key = Web3.toHex(G2ProofOfPossession.SkToPk(signing_key.key))
                     missed_keypairs[public_key] = signing_key
+                return missed_keypairs
 
-                if public_key in self.operator_deposit_data_public_keys:
-                    processed_count += 1
-                    bar.update(1)
+        from_index = 0
+        while True:
+            signing_key = get_mnemonic_signing_key(self.mnemonic, from_index)
+            public_key = Web3.toHex(G2ProofOfPossession.SkToPk(signing_key.key))
 
+            if public_key in self.vault_current_state:
                 from_index += 1
+                continue
+
+            if public_key in self.operator_deposit_data_public_keys:
+                missed_keypairs[public_key] = signing_key
+                from_index += 1
+                continue
+
+            is_registered = is_validator_registered(
+                gql_client=self.sw_gql_client, public_key=public_key
+            )
+            if is_registered:
+                missed_keypairs[public_key] = signing_key
+                from_index += 1
+                continue
+
+            break
+
+        if not missed_keypairs:
+            return missed_keypairs
+
+        click.confirm(
+            f"Fetched {len(missed_keypairs)} missing validator keys. Upload them to vault?",
+            abort=True,
+        )
 
         exited_public_keys: Set[HexStr] = set()
         missed_keypairs_items = list(missed_keypairs.items())
@@ -455,13 +486,13 @@ class Vault(object):
         vault_keystore = self.vault_current_state[public_key1]
         keystore = ScryptKeystore.from_json(json.loads(vault_keystore["keystore"]))
 
-        if self.is_legacy:
+        if MIGRATE_LEGACY:
             from_index = int(keystore.path.split("/")[-1])
         else:
             from_index = int(keystore.path.split("/")[3])
 
         signing_key = get_mnemonic_signing_key(
-            mnemonic=self.mnemonic, from_index=from_index, is_legacy=self.is_legacy
+            mnemonic=self.mnemonic, from_index=from_index
         )
         public_key2 = Web3.toHex(G2ProofOfPossession.SkToPk(signing_key.key))
 
