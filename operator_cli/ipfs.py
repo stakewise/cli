@@ -77,7 +77,7 @@ def get_operator_deposit_datum(ipfs_id: str) -> List[Dict[Any, Any]]:
         try:
             with ipfshttpclient.connect(ipfs_endpoint) as client:
                 return client.get_json(ipfs_id)
-        except ipfshttpclient.exceptions.TimeoutError:
+        except:  # noqa: E722
             pass
 
     for endpoint in IPFS_FETCH_ENDPOINTS:
