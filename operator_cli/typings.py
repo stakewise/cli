@@ -1,4 +1,4 @@
-from typing import Dict, NamedTuple, NewType, TypedDict
+from typing import Dict, List, NamedTuple, NewType, TypedDict
 
 from eth_typing import HexStr
 
@@ -19,7 +19,7 @@ class MerkleDepositData(TypedDict):
     amount: str
     withdrawal_credentials: HexStr
     deposit_data_root: HexStr
-    proof: str
+    proof: List[HexStr]
 
 
 class VaultKeystore(TypedDict):

@@ -202,15 +202,13 @@ def generate_password() -> str:
     while True:
         password = [secrets.choice(alphabet) for _ in range(20)]
         password_set = set(password)
-        if not (
+        if (
             upper_set.intersection(password_set)
             and lower_set.intersection(password_set)
             and special_set.intersection(password_set)
             and digits_set.intersection(password_set)
         ):
-            continue
-
-        return "".join(password)
+            return "".join(password)
 
 
 def get_deposit_data_signature(
@@ -274,7 +272,7 @@ def generate_merkle_deposit_datum(
                 amount=str(deposit_amount),
                 withdrawal_credentials=WITHDRAWAL_CREDENTIALS,
                 deposit_data_root=w3.toHex(deposit_data_root),
-                proof="",
+                proof=[],
             )
             merkle_deposit_datum.append(deposit_data)
 
@@ -283,7 +281,7 @@ def generate_merkle_deposit_datum(
     # collect proofs
     for i, deposit_data in enumerate(merkle_deposit_datum):
         proof: List[HexStr] = merkle_tree.get_hex_proof(merkle_elements[i])
-        deposit_data["proof"] = ",".join(proof)
+        deposit_data["proof"] = proof
 
     # calculate merkle root
     merkle_root: HexStr = merkle_tree.get_hex_root()

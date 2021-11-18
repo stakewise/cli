@@ -1,4 +1,3 @@
-import os
 from typing import Dict
 
 from decouple import Csv, config
@@ -15,8 +14,6 @@ SUPPORTED_CHAINS: Dict[str, BaseChainSetting] = {
     MAINNET: MainnetSetting,
     PRATER: PraterSetting,
 }
-
-OUTPUT_DIR = config("OUTPUT_DIR", default=os.path.join(os.getcwd(), "output"))
 
 WITHDRAWAL_CREDENTIALS = config(
     "WITHDRAWAL_CREDENTIALS",
@@ -44,7 +41,6 @@ IPFS_PINATA_SECRET_KEY = config(
 VAULT_VALIDATORS_MOUNT_POINT = config(
     "VAULT_VALIDATORS_MOUNT_POINT", default="validators"
 )
-VALIDATORS_NAMESPACE = config("VALIDATORS_NAMESPACE", default="validators")
 
 ETHEREUM_MAINNET_SUBGRAPH_URL = config(
     "ETHEREUM_MAINNET_SUBGRAPH_URL",

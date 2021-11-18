@@ -66,6 +66,11 @@ def sync_vault(chain: str) -> None:
     except InvalidRequest:
         pass
 
+    namespace = click.prompt(
+        "Enter the validators kubernetes namespace",
+        default="validators",
+        type=click.STRING,
+    )
     mnemonic = click.prompt(
         'Enter your mnemonic separated by spaces (" ")',
         value_proc=validate_mnemonic,
@@ -79,7 +84,11 @@ def sync_vault(chain: str) -> None:
     )
 
     vault = Vault(
-        vault_client=vault_client, beacon=beacon_client, chain=chain, mnemonic=mnemonic
+        vault_client=vault_client,
+        beacon=beacon_client,
+        chain=chain,
+        mnemonic=mnemonic,
+        namespace=namespace,
     )
 
     vault.apply_vault_changes()

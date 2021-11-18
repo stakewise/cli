@@ -125,7 +125,7 @@ def generate_proposal(chain: str, existing_vault: bool) -> None:
     specification = f"""
 ## Specification
 
-- Call `addOperator` function of `PoolValidators` contract with the following parameters:
+- DAO calls `addOperator` function of `PoolValidators` contract with the following parameters:
     * operator: `{operator}`
     * initializeMerkleRoot: `{initialize_merkle_root}`
     * initializeMerkleProofs: `{initialize_ipfs_url}`
@@ -143,13 +143,13 @@ def generate_proposal(chain: str, existing_vault: bool) -> None:
         )
         specification += f"""
 
-- Call `setOperator` function of `Roles` contract with the following parameters:
+- DAO calls `setOperator` function of `Roles` contract with the following parameters:
     * account: `{operator}`
     * revenueShare: `{share_percentage}`
 
 
 - If the proposal will be approved, the operator must perform the following steps:
-    * Call `./operator-cli sync-vault` with the same mnemonic as used for the proposal
+    * Call `operator-cli sync-vault` with the same mnemonic as used for the proposal
     * Create or update validators and make sure the new keys are added
     * Call `commitOperator` from the `{operator}` address together with 1 ETH collateral
 """
@@ -157,7 +157,7 @@ def generate_proposal(chain: str, existing_vault: bool) -> None:
         specification += f"""
 
 - If the proposal will be approved, the operator must perform the following steps:
-    * Call `./operator-cli sync-vault` with the same mnemonic as used for generating the proposal
+    * Call `operator-cli sync-vault` with the same mnemonic as used for generating the proposal
     * Create or update validators and make sure the new keys are added
     * Call `commitOperator` from the `{operator}` address
 """
