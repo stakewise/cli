@@ -28,11 +28,7 @@ from operator_cli.eth2 import (
 )
 from operator_cli.ipfs import get_operator_deposit_datum
 from operator_cli.queries import get_stakewise_gql_client
-from operator_cli.settings import (
-    MIGRATE_LEGACY,
-    VALIDATORS_NAMESPACE,
-    VAULT_VALIDATORS_MOUNT_POINT,
-)
+from operator_cli.settings import MIGRATE_LEGACY, VAULT_VALIDATORS_MOUNT_POINT
 from operator_cli.typings import SigningKey, VaultKeystore, VaultState
 
 MAX_KEYS_PER_VALIDATOR = 100
@@ -63,11 +59,13 @@ class Vault(object):
         beacon: Beacon,
         chain: str,
         mnemonic: str,
+        namespace: str,
     ):
         self.vault_client = vault_client
         self.sw_gql_client = get_stakewise_gql_client(chain)
         self.beacon = beacon
         self.mnemonic = mnemonic
+        self.namespace = namespace
         self.check_mnemonic()
 
     @cached_property
@@ -402,7 +400,7 @@ class Vault(object):
                     name=validator_name,
                     policies=[validator_name],
                     bound_service_account_names=validator_name,
-                    bound_service_account_namespaces=VALIDATORS_NAMESPACE,
+                    bound_service_account_namespaces=self.namespace,
                 )
                 bar.update(1)
 
