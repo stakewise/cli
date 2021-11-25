@@ -27,7 +27,7 @@ In your post you must include the `Specification` section that was generated in 
 
 ### Step 4. Deploy ETH2 infrastructure
 
-If the proposal from step 3 is approved by the DAO, follow the instructions [here](https://github.com/stakewise/helm-charts/tree/main/operator#readme)
+If the proposal from step 3 is approved by the DAO, follow the instructions [here](https://github.com/stakewise/helm-charts/tree/main/charts/operator#readme)
 to deploy the ETH2 staking infrastructure.
 
 ### Step 5. Sync keys to the Vault
