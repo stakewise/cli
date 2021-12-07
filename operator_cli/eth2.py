@@ -17,7 +17,7 @@ from eth2deposit.key_handling.key_derivation.tree import (
     derive_child_SK,
     derive_master_SK,
 )
-from eth2deposit.settings import BaseChainSetting
+from eth2deposit.settings import PRATER, BaseChainSetting
 from eth2deposit.utils.ssz import DepositData as SSZDepositData
 from eth2deposit.utils.ssz import (
     DepositMessage,
@@ -33,7 +33,11 @@ from web3.types import Wei
 
 from operator_cli.merkle_tree import MerkleTree
 from operator_cli.queries import REGISTRATIONS_QUERY
-from operator_cli.settings import MIGRATE_LEGACY, WITHDRAWAL_CREDENTIALS
+from operator_cli.settings import (
+    MAINNET_WITHDRAWAL_CREDENTIALS,
+    MIGRATE_LEGACY,
+    PRATER_WITHDRAWAL_CREDENTIALS,
+)
 from operator_cli.typings import (
     BLSPrivkey,
     Bytes4,
@@ -237,9 +241,17 @@ def generate_merkle_deposit_datum(
     validator_keypairs: List[KeyPair],
 ) -> Tuple[HexStr, List[MerkleDepositData]]:
     """Generates deposit data with merkle proofs for the validators."""
-    withdrawal_credentials_bytes: Bytes32 = Bytes32(
-        w3.toBytes(hexstr=WITHDRAWAL_CREDENTIALS)
-    )
+    if chain_setting.ETH2_NETWORK_NAME == PRATER:
+        withdrawal_credentials: HexStr = PRATER_WITHDRAWAL_CREDENTIALS
+        withdrawal_credentials_bytes: Bytes32 = Bytes32(
+            w3.toBytes(hexstr=PRATER_WITHDRAWAL_CREDENTIALS)
+        )
+    else:
+        withdrawal_credentials: HexStr = MAINNET_WITHDRAWAL_CREDENTIALS
+        withdrawal_credentials_bytes: Bytes32 = Bytes32(
+            w3.toBytes(hexstr=MAINNET_WITHDRAWAL_CREDENTIALS)
+        )
+
     deposit_amount_gwei: Gwei = Gwei(int(w3.fromWei(deposit_amount, "gwei")))
     merkle_deposit_datum: List[MerkleDepositData] = []
     merkle_elements: List[bytes] = []
@@ -270,7 +282,7 @@ def generate_merkle_deposit_datum(
                 public_key=public_key,
                 signature=w3.toHex(signature),
                 amount=str(deposit_amount),
-                withdrawal_credentials=WITHDRAWAL_CREDENTIALS,
+                withdrawal_credentials=withdrawal_credentials,
                 deposit_data_root=w3.toHex(deposit_data_root),
                 proof=[],
             )

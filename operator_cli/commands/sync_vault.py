@@ -93,3 +93,8 @@ def sync_vault(chain: str) -> None:
 
     vault.apply_vault_changes()
     vault.verify_vault_keystores()
+    click.echo(
+        f"Make sure you have the following validators"
+        f" running in the {namespace} namespace: {','.join(sorted(vault.vault_validator_names))}."
+        f" Restart them if they were updated."
+    )

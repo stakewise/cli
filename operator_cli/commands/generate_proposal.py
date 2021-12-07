@@ -141,12 +141,15 @@ def generate_proposal(chain: str, existing_vault: bool) -> None:
             default=50.00,
             value_proc=validate_share_percentage,
         )
-        specification += f"""
+        if share_percentage > 0:
+            specification += f"""
 
 - DAO calls `setOperator` function of `Roles` contract with the following parameters:
     * account: `{operator}`
     * revenueShare: `{share_percentage}`
+"""
 
+        specification += """
 
 - If the proposal will be approved, the operator must perform the following steps:
     * Call `operator-cli sync-vault` with the same mnemonic as used for the proposal
