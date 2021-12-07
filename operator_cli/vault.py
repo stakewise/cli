@@ -437,6 +437,13 @@ class Vault(object):
                 )
 
     def verify_vault_keystores(self) -> None:
+        # clean up cached property
+        try:
+            # noinspection PyPropertyAccess
+            del self.vault_validator_names
+        except AttributeError:
+            pass
+
         public_keys: Set[BLSPubkey] = set()
         with click.progressbar(
             self.vault_validator_names,
