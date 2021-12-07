@@ -61,7 +61,7 @@ Your validators will get ether assigned, and you can claim your operator rewards
 | Variable                       | Description                                                                      | Required | Default                                                                 |
 |--------------------------------|----------------------------------------------------------------------------------|----------|-------------------------------------------------------------------------|
 | MAINNET_WITHDRAWAL_CREDENTIALS | The withdrawal credentials of the validators used in mainnet deposit data        | No       | 0x0100000000000000000000002296e122c1a20fca3cac3371357bdad3be0df079      |
-| PRATER_WITHDRAWAL_CREDENTIALS  | The withdrawal credentials of the validators used in prater testnet deposit data | No       | 0x003e294ffc37978496f1b9298d5984ad4d55d4e2d1e6a06ee6904810c7b9e0d5      |
+| PRATER_WITHDRAWAL_CREDENTIALS  | The withdrawal credentials of the validators used in prater testnet deposit data | No       | 0x010000000000000000000000040f15c6b5bfc5f324ecab5864c38d4e1eef4218      |
 | IPFS_PIN_ENDPOINTS             | The IPFS endpoint where the deposit data will be uploaded                        | No       | /dns/ipfs.infura.io/tcp/5001/https                                      |
 | IPFS_FETCH_ENDPOINTS           | The IPFS endpoints from where the deposit data will be fetched                   | No       | https://gateway.pinata.cloud,http://cloudflare-ipfs.com,https://ipfs.io |
 | IPFS_PINATA_API_KEY            | The Pinata API key for uploading deposit data for the redundancy                 | No       | -                                                                       |
