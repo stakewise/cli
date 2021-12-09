@@ -21,6 +21,14 @@ def get_beacon_client() -> Beacon:
     return Beacon(base_url=url)
 
 
+def get_kubernetes_api_server() -> str:
+    url = click.prompt(
+        "Please enter host string, a host:port pair, or a URL to the base of the Kubernetes API server",
+        type=click.STRING,
+    )
+    return url
+
+
 @click.command(help="Synchronizes validator keystores in the vault")
 @click.option(
     "--chain",
@@ -65,6 +73,18 @@ def sync_vault(chain: str) -> None:
         vault_client.sys.enable_auth_method("kubernetes")
     except InvalidRequest:
         pass
+
+    while True:
+        try:
+            response = vault_client.auth.kubernetes.configure(
+                kubernetes_host=get_kubernetes_api_server()
+            )
+            response.raise_for_status()
+            break
+        except:  # noqa: E722
+            pass
+
+        click.echo("Error: failed to connect to the Kubernetes API host")
 
     namespace = click.prompt(
         "Enter the validators kubernetes namespace",
