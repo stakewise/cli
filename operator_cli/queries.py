@@ -71,7 +71,7 @@ OPERATORS_QUERY = gql(
     query getOperators {
       operators {
         id
-        initializeMerkleProofs
+        depositDataMerkleProofs
       }
     }
 """

@@ -4,9 +4,8 @@ from eth_utils import is_address, to_checksum_address
 
 from operator_cli.eth1 import check_operator_exists
 from operator_cli.eth2 import (
-    FINALIZE_DEPOSIT_AMOUNT,
-    INITIALIZE_DEPOSIT_AMOUNT,
     LANGUAGES,
+    VALIDATOR_DEPOSIT_AMOUNT,
     create_new_mnemonic,
     generate_merkle_deposit_datum,
     generate_unused_validator_keys,
@@ -92,27 +91,17 @@ def generate_proposal(chain: str, existing_vault: bool) -> None:
 
     # 2. Generate and save deposit data
     chain_setting = get_chain_setting(chain)
-    (
-        initialize_merkle_root,
-        initialize_merkle_deposit_datum,
-    ) = generate_merkle_deposit_datum(
+    (deposit_data_merkle_root, deposit_data,) = generate_merkle_deposit_datum(
         chain_setting=chain_setting,
-        deposit_amount=INITIALIZE_DEPOSIT_AMOUNT,
-        loading_label="Creating initialize deposit data:\t\t",
-        validator_keypairs=keypairs,
-    )
-    finalize_merkle_root, finalize_merkle_deposit_datum = generate_merkle_deposit_datum(
-        chain_setting=chain_setting,
-        deposit_amount=FINALIZE_DEPOSIT_AMOUNT,
-        loading_label="Creating finalize deposit data:\t\t",
+        deposit_amount=VALIDATOR_DEPOSIT_AMOUNT,
+        loading_label="Creating deposit data:\t\t",
         validator_keypairs=keypairs,
     )
 
     # TODO: Generate and save exit signatures
 
     # 3. Upload deposit data to IPFS
-    initialize_ipfs_url = upload_deposit_datum(initialize_merkle_deposit_datum)
-    finalize_ipfs_url = upload_deposit_datum(finalize_merkle_deposit_datum)
+    ipfs_url = upload_deposit_datum(deposit_data)
     click.clear()
 
     # 4. Generate proposal specification part
@@ -127,10 +116,8 @@ def generate_proposal(chain: str, existing_vault: bool) -> None:
 
 - DAO calls `addOperator` function of `PoolValidators` contract with the following parameters:
     * operator: `{operator}`
-    * initializeMerkleRoot: `{initialize_merkle_root}`
-    * initializeMerkleProofs: `{initialize_ipfs_url}`
-    * finalizeMerkleRoot: `{finalize_merkle_root}`
-    * finalizeMerkleProofs: `{finalize_ipfs_url}`
+    * depositDataMerkleRoot: `{deposit_data_merkle_root}`
+    * depositDataMerkleProofs: `{ipfs_url}`
 """
 
     stakewise_gql_client = get_stakewise_gql_client(chain)
@@ -149,15 +136,7 @@ def generate_proposal(chain: str, existing_vault: bool) -> None:
     * revenueShare: `{share_percentage}`
 """
 
-        specification += """
-
-- If the proposal will be approved, the operator must perform the following steps:
-    * Call `operator-cli sync-vault` with the same mnemonic as used for the proposal
-    * Create or update validators and make sure the new keys are added
-    * Call `commitOperator` from the `{operator}` address together with 1 ETH collateral
-"""
-    else:
-        specification += f"""
+    specification += f"""
 
 - If the proposal will be approved, the operator must perform the following steps:
     * Call `operator-cli sync-vault` with the same mnemonic as used for generating the proposal

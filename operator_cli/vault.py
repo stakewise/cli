@@ -16,7 +16,7 @@ from web3 import Web3
 from web3.beacon import Beacon
 
 from operator_cli.eth1 import (
-    get_operators_init_merkle_proofs,
+    get_operators_deposit_data_merkle_proofs,
     get_validator_operator_address,
     is_validator_registered,
 )
@@ -120,10 +120,12 @@ class Vault(object):
     @cached_property
     def all_operators_deposit_data_public_keys(self) -> Dict[HexStr, ChecksumAddress]:
         """Fetches public keys and operators from deposit datum."""
-        init_merkle_proofs = get_operators_init_merkle_proofs(self.sw_gql_client)
+        deposit_data_merkle_proofs = get_operators_deposit_data_merkle_proofs(
+            self.sw_gql_client
+        )
         result: Dict[HexStr, ChecksumAddress] = {}
         with click.progressbar(
-            init_merkle_proofs.items(),
+            deposit_data_merkle_proofs.items(),
             label="Fetching deposit datum\t\t",
             show_percent=False,
             show_pos=True,
