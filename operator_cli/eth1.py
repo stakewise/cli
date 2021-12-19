@@ -20,19 +20,19 @@ def check_operator_exists(gql_client: GqlClient, operator: ChecksumAddress) -> b
 
 
 @backoff.on_exception(backoff.expo, Exception, max_time=180)
-def get_operators_init_merkle_proofs(
+def get_operators_deposit_data_merkle_proofs(
     gql_client: GqlClient,
 ) -> Dict[ChecksumAddress, str]:
-    """Fetches initialize merkle proofs of the operators."""
+    """Fetches deposit data merkle proofs of the operators."""
     result: Dict = gql_client.execute(OPERATORS_QUERY)
     operators = result["operators"]
-    init_merkle_proofs = {}
+    deposit_data_merkle_proofs = {}
     for operator in operators:
-        proofs = operator["initializeMerkleProofs"]
+        proofs = operator["depositDataMerkleProofs"]
         if proofs:
-            init_merkle_proofs[Web3.toChecksumAddress(operator["id"])] = proofs
+            deposit_data_merkle_proofs[Web3.toChecksumAddress(operator["id"])] = proofs
 
-    return init_merkle_proofs
+    return deposit_data_merkle_proofs
 
 
 @backoff.on_exception(backoff.expo, Exception, max_time=180)

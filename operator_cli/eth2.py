@@ -61,8 +61,7 @@ PURPOSE = "12381"
 COIN_TYPE = "3600"
 
 w3 = Web3()
-INITIALIZE_DEPOSIT_AMOUNT: Wei = w3.toWei(1, "ether")
-FINALIZE_DEPOSIT_AMOUNT: Wei = w3.toWei(31, "ether")
+VALIDATOR_DEPOSIT_AMOUNT: Wei = w3.toWei(32, "ether")
 
 
 class ValidatorStatus(Enum):
