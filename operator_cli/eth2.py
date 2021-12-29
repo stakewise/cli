@@ -155,7 +155,7 @@ def generate_unused_validator_keys(
             )
             registrations = result["validatorRegistrations"]
             for registration in registrations:
-                del pub_key_to_priv_key[registration["id"]]
+                del pub_key_to_priv_key[registration["publicKey"]]
 
             bar.update(len(pub_key_to_priv_key) - curr_progress)
 

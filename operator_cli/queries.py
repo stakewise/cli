@@ -44,11 +44,11 @@ def get_stakewise_gql_client(chain: str) -> Client:
 
 REGISTRATIONS_QUERY = gql(
     """
-    query getValidatorRegistrations($public_keys: [ID!]) {
+    query getValidatorRegistrations($public_keys: [Bytes!]) {
       validatorRegistrations(
-        where: { id_in: $public_keys }
+        where: { publicKey_in: $public_keys }
       ) {
-        id
+        publicKey
       }
     }
 """
