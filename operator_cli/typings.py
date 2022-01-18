@@ -27,9 +27,15 @@ class VaultKeystore(TypedDict):
     keystore: str
 
 
+class LocalKeystore(TypedDict):
+    validator_name: str
+    keystore: str
+
+
 class SigningKey(NamedTuple):
     path: str
     key: BLSPrivkey
 
 
 VaultState = Dict[HexStr, VaultKeystore]
+LocalState = Dict[HexStr, LocalKeystore]
