@@ -299,9 +299,7 @@ class LocalStorage(object):
     def get_or_create_keystore_password(self, validator_name) -> str:
         """Retrieves validator keystore password if exists or creates a new one."""
         try:
-            with open(
-                f"validators/{validator_name}/password/password.txt"
-            ) as file:
+            with open(f"validators/{validator_name}/password/password.txt") as file:
                 password = file.readline()
         except FileNotFoundError:
             password = generate_password()
@@ -375,7 +373,9 @@ class LocalStorage(object):
             for validator_name in _validators_keystores:
                 for name, keystore in validators_keystores[validator_name].items():
                     makedirs(f"validators/{validator_name}/keystores", exist_ok=True)
-                    with open(f"validators/{validator_name}/keystores/"+name, "w") as file:
+                    with open(
+                        f"validators/{validator_name}/keystores/"+name, "w"
+                    ) as file:
                         file.write(keystore)
 
     def verify_local_keystores(self) -> None:
