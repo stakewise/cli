@@ -35,7 +35,6 @@ from operator_cli.merkle_tree import MerkleTree
 from operator_cli.queries import REGISTRATIONS_QUERY
 from operator_cli.settings import (
     MAINNET_WITHDRAWAL_CREDENTIALS,
-    MIGRATE_LEGACY,
     PRATER_WITHDRAWAL_CREDENTIALS,
 )
 from operator_cli.typings import (
@@ -169,10 +168,7 @@ def get_mnemonic_signing_key(mnemonic: str, from_index: int) -> SigningKey:
     """Returns the signing key of the mnemonic at a specific index."""
     seed = get_seed(mnemonic=mnemonic, password="")
     private_key = BLSPrivkey(derive_master_SK(seed))
-    if MIGRATE_LEGACY:
-        signing_key_path = f"m/{PURPOSE}/{COIN_TYPE}/0/0/{from_index}"
-    else:
-        signing_key_path = f"m/{PURPOSE}/{COIN_TYPE}/{from_index}/0/0"
+    signing_key_path = f"m/{PURPOSE}/{COIN_TYPE}/{from_index}/0/0"
 
     for node in path_to_nodes(signing_key_path):
         private_key = BLSPrivkey(derive_child_SK(parent_SK=private_key, index=node))

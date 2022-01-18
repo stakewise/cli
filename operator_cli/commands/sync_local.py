@@ -4,8 +4,8 @@ from requests.exceptions import ConnectionError, HTTPError
 from web3.beacon import Beacon
 
 from operator_cli.eth2 import validate_mnemonic
-from operator_cli.settings import SUPPORTED_CHAINS
 from operator_cli.local_storage import LocalStorage
+from operator_cli.settings import SUPPORTED_CHAINS
 
 
 def get_beacon_client() -> Beacon:

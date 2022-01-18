@@ -63,7 +63,3 @@ STAKEWISE_GOERLI_SUBGRAPH_URL = config(
     "ETHEREUM_GOERLI_SUBGRAPH_URL",
     default="https://api.thegraph.com/subgraphs/name/stakewise/stakewise-goerli",
 )
-
-# The legacy key derivation path will be used and new vault will be populated with 1000 keys.
-# Skip this flag in case you are not migrating from the legacy system.
-MIGRATE_LEGACY = config("MIGRATE_LEGACY", cast=bool, default=False)

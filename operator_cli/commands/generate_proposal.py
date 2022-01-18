@@ -139,7 +139,7 @@ def generate_proposal(chain: str, existing_vault: bool) -> None:
     specification += f"""
 
 - If the proposal will be approved, the operator must perform the following steps:
-    * Call `operator-cli sync-vault` with the same mnemonic as used for generating the proposal
+    * Call `operator-cli sync-vault` or `operator-cli sync-local` with the same mnemonic as used for generating the proposal
     * Create or update validators and make sure the new keys are added
     * Call `commitOperator` from the `{operator}` address
 """
