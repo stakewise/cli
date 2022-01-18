@@ -6,7 +6,6 @@ from functools import cached_property, lru_cache
 from os import listdir, makedirs
 from shutil import rmtree
 from typing import Dict, OrderedDict, Set, Union
-from wsgiref.validate import validator
 
 import click
 from eth2deposit.key_handling.keystore import ScryptKeystore
