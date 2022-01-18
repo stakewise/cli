@@ -374,7 +374,7 @@ class LocalStorage(object):
                 for name, keystore in validators_keystores[validator_name].items():
                     makedirs(f"validators/{validator_name}/keystores", exist_ok=True)
                     with open(
-                        f"validators/{validator_name}/keystores/"+name, "w"
+                        f"validators/{validator_name}/keystores/" + name, "w"
                     ) as file:
                         file.write(keystore)
 
