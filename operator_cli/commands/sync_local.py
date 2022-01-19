@@ -52,4 +52,3 @@ def sync_local(chain: str) -> None:
     )
 
     local_storage.apply_local_changes()
-    local_storage.verify_local_keystores()

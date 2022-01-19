@@ -9,7 +9,7 @@ from typing import Dict, OrderedDict, Set, Union
 
 import click
 from eth2deposit.key_handling.keystore import ScryptKeystore
-from eth_typing import BLSPubkey, ChecksumAddress, HexStr
+from eth_typing import ChecksumAddress, HexStr
 from py_ecc.bls import G2ProofOfPossession
 from web3 import Web3
 from web3.beacon import Beacon
@@ -28,9 +28,6 @@ from operator_cli.eth2 import (
 from operator_cli.ipfs import get_operator_deposit_datum
 from operator_cli.queries import get_stakewise_gql_client
 from operator_cli.typings import LocalKeystore, LocalState, SigningKey
-from operator_cli.vault import generate_validator_name
-
-MAX_KEYS_PER_VALIDATOR = 100
 
 
 class LocalStorage(object):
@@ -45,15 +42,6 @@ class LocalStorage(object):
         self.beacon = beacon
         self.mnemonic = mnemonic
         self.folder = folder
-
-    @cached_property
-    def local_validator_names(self) -> Set[str]:
-        """Fetches names of local validators."""
-        try:
-            name = listdir(f"{self.folder}")
-            return set(name)
-        except FileNotFoundError:
-            return set()
 
     @cached_property
     def all_operators_deposit_data_public_keys(self) -> Dict[HexStr, ChecksumAddress]:
@@ -172,16 +160,6 @@ class LocalStorage(object):
         for public_key in exited_public_keys:
             del missed_keypairs[public_key]
 
-        validator_keys_count: Dict[str, int] = collections.Counter([])
-        total_capacity = MAX_KEYS_PER_VALIDATOR * len(validator_keys_count)
-        available_slots = total_capacity - sum(validator_keys_count.values())
-        while available_slots < len(missed_keypairs.items()):
-            new_validator_name = generate_validator_name(
-                set(validator_keys_count.keys())
-            )
-            validator_keys_count[new_validator_name] = 0
-            available_slots += MAX_KEYS_PER_VALIDATOR
-
         new_state: Dict[str, int] = collections.Counter([])
 
         # distribute missing keypairs across validators
@@ -192,31 +170,30 @@ class LocalStorage(object):
             show_pos=True,
         ) as missing_keypairs:
             for public_key in missing_keypairs:
-                validator_name = min(validator_keys_count, key=validator_keys_count.get)
+                validator_name = "validator"
                 signing_key = missed_keypairs[public_key]
                 secret = signing_key.key.to_bytes(32, "big")
-                password = self.get_or_create_keystore_password(validator_name)
+                password = self.get_or_create_keystore_password()
                 keystore = ScryptKeystore.encrypt(
                     secret=secret, password=password, path=signing_key.path
                 ).as_json()
                 new_state[public_key] = LocalKeystore(
                     validator_name=validator_name, keystore=keystore
                 )
-                validator_keys_count[validator_name] += 1
 
         return new_state
 
     @lru_cache
-    def get_or_create_keystore_password(self, validator_name) -> str:
+    def get_or_create_keystore_password(self) -> str:
         """Retrieves validator keystore password if exists or creates a new one."""
         try:
-            with open(f"{self.folder}/{validator_name}/password/password.txt") as file:
+            with open(f"{self.folder}/password/password.txt") as file:
                 password = file.readline()
         except FileNotFoundError:
             password = generate_password()
-            makedirs(f"{self.folder}/{validator_name}/password", exist_ok=True)
+            makedirs(f"{self.folder}/password", exist_ok=True)
             with open(
-                f"{self.folder}/{validator_name}/password/password.txt", "w"
+                f"{self.folder}/password/password.txt", "w"
             ) as file:
                 file.write(password)
 
@@ -265,54 +242,8 @@ class LocalStorage(object):
         ) as _validators_keystores:
             for validator_name in _validators_keystores:
                 for name, keystore in validators_keystores[validator_name].items():
-                    makedirs(f"{self.folder}/{validator_name}/keystores", exist_ok=True)
+                    makedirs(f"{self.folder}/keystores", exist_ok=True)
                     with open(
-                        f"{self.folder}/{validator_name}/keystores/{name}", "w"
+                        f"{self.folder}/keystores/{name}", "w"
                     ) as file:
                         file.write(keystore)
-
-    def verify_local_keystores(self) -> None:
-        # clean up cached property
-        try:
-            # noinspection PyPropertyAccess
-            del self.local_validator_names
-        except AttributeError:
-            pass
-
-        public_keys: Set[BLSPubkey] = set()
-        with click.progressbar(
-            self.local_validator_names,
-            label="Verifying local state\t\t",
-            show_percent=False,
-            show_pos=True,
-        ) as validator_names:
-            for validator_name in validator_names:
-                try:
-                    validator_keystores: Dict[str, str] = []
-                    keystores = listdir(f"{self.folder}/{validator_name}/keystores")
-                    for keystore in keystores:
-                        with open(
-                            f"{self.folder}/{validator_name}/keystores/{keystore}"
-                        ) as f:
-                            data = f.readline()
-                            validator_keystores.append(data)
-                except FileNotFoundError:
-                    continue
-
-                for keystore_str in validator_keystores:
-                    keystore = json.loads(keystore_str)
-                    password = self.get_or_create_keystore_password(validator_name)
-                    private_key = ScryptKeystore.from_json(keystore).decrypt(password)
-                    public_key = G2ProofOfPossession.SkToPk(
-                        int.from_bytes(private_key, byteorder="big")
-                    )
-                    if public_key in public_keys:
-                        raise click.ClickException(
-                            f"Public key {Web3.toHex(public_key)} is presented in multiple keystores"
-                        )
-
-                    public_keys.add(public_key)
-                    if Web3.toBytes(hexstr=keystore["pubkey"]) != public_key:
-                        raise click.ClickException(
-                            f"Failed to verify keystore for validator {validator_name}"
-                        )
