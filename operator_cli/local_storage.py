@@ -192,9 +192,7 @@ class LocalStorage(object):
         except FileNotFoundError:
             password = generate_password()
             makedirs(f"{self.folder}/password", exist_ok=True)
-            with open(
-                f"{self.folder}/password/password.txt", "w"
-            ) as file:
+            with open(f"{self.folder}/password/password.txt", "w") as file:
                 file.write(password)
 
         return password
@@ -243,7 +241,5 @@ class LocalStorage(object):
             for validator_name in _validators_keystores:
                 for name, keystore in validators_keystores[validator_name].items():
                     makedirs(f"{self.folder}/keystores", exist_ok=True)
-                    with open(
-                        f"{self.folder}/keystores/{name}", "w"
-                    ) as file:
+                    with open(f"{self.folder}/keystores/{name}", "w") as file:
                         file.write(keystore)
