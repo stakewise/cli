@@ -32,7 +32,6 @@ from operator_cli.settings import VAULT_VALIDATORS_MOUNT_POINT
 from operator_cli.typings import SigningKey, VaultKeystore, VaultState
 
 MAX_KEYS_PER_VALIDATOR = 100
-LEGACY_TOTAL_KEYS = 1000
 
 VALIDATOR_POLICY = """
 path "%s/%s/*" {

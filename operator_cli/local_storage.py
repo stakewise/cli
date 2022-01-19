@@ -32,7 +32,6 @@ from operator_cli.typings import LocalKeystore, LocalState, SigningKey
 from operator_cli.vault import generate_validator_name
 
 MAX_KEYS_PER_VALIDATOR = 100
-LEGACY_TOTAL_KEYS = 1000
 
 
 class LocalStorage(object):
@@ -229,13 +228,13 @@ class LocalStorage(object):
 
         if exists(self.folder):
             if len(listdir(self.folder)) > 1:
-                exit(f"{self.folder} already exist and not empty")
+                click.ClickException(f"{self.folder} already exist and not empty")
         else:
             try:
                 makedirs(self.folder)
             except OSError as e:
                 if e.errno != errno.EEXIST:
-                    raise
+                    raise e
 
         # sync keystores
         self.sync_local_keystores()
@@ -269,7 +268,7 @@ class LocalStorage(object):
                 for name, keystore in validators_keystores[validator_name].items():
                     makedirs(f"{self.folder}/{validator_name}/keystores", exist_ok=True)
                     with open(
-                        f"{self.folder}/{validator_name}/keystores/" + name, "w"
+                        f"{self.folder}/{validator_name}/keystores/{name}", "w"
                     ) as file:
                         file.write(keystore)
 
