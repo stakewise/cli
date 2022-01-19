@@ -4,7 +4,7 @@ from hvac import Client as VaultClient
 from hvac.exceptions import InvalidRequest
 from requests.exceptions import ConnectionError, HTTPError
 
-from operator_cli.eth2 import validate_mnemonic, get_beacon_client
+from operator_cli.eth2 import get_beacon_client, validate_mnemonic
 from operator_cli.settings import SUPPORTED_CHAINS, VAULT_VALIDATORS_MOUNT_POINT
 from operator_cli.vault import Vault
 

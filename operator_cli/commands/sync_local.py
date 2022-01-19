@@ -33,7 +33,7 @@ def sync_local(chain: str) -> None:
     )
 
     folder = click.prompt(
-        'The folder to place the generated keystores and passwords in',
+        "The folder to place the generated keystores and passwords in",
         default="./validator_keys",
         type=click.STRING,
     )

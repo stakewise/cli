@@ -1,12 +1,12 @@
 import collections
+import errno
 import json
 import time
-import errno
 from functools import cached_property, lru_cache
 from os import listdir, makedirs
 from os.path import exists
-from typing import Dict, OrderedDict, Set, Union
 from sys import exit
+from typing import Dict, OrderedDict, Set, Union
 
 import click
 from eth2deposit.key_handling.keystore import ScryptKeystore
@@ -176,10 +176,7 @@ class LocalStorage(object):
 
         validator_keys_count: Dict[str, int] = collections.Counter([])
         total_capacity = MAX_KEYS_PER_VALIDATOR * len(validator_keys_count)
-        available_slots = (
-            total_capacity
-            - sum(validator_keys_count.values())
-        )
+        available_slots = total_capacity - sum(validator_keys_count.values())
         while available_slots < len(missed_keypairs.items()):
             new_validator_name = generate_validator_name(
                 set(validator_keys_count.keys())
