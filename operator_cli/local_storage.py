@@ -5,7 +5,6 @@ import time
 from functools import cached_property, lru_cache
 from os import listdir, makedirs
 from os.path import exists
-from sys import exit
 from typing import Dict, OrderedDict, Set, Union
 
 import click
