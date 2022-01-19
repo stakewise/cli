@@ -1,5 +1,4 @@
 import collections
-import copy
 import json
 import time
 import errno
@@ -12,7 +11,6 @@ from sys import exit
 import click
 from eth2deposit.key_handling.keystore import ScryptKeystore
 from eth_typing import BLSPubkey, ChecksumAddress, HexStr
-from eth_utils import add_0x_prefix
 from py_ecc.bls import G2ProofOfPossession
 from web3 import Web3
 from web3.beacon import Beacon
@@ -241,7 +239,7 @@ class LocalStorage(object):
             except OSError as e:
                 if e.errno != errno.EEXIST:
                     raise
-    
+
         # sync keystores
         self.sync_local_keystores()
 
