@@ -2,10 +2,12 @@ import collections
 import copy
 import json
 import time
+import errno
 from functools import cached_property, lru_cache
 from os import listdir, makedirs
-from shutil import rmtree
+from os.path import exists
 from typing import Dict, OrderedDict, Set, Union
+from sys import exit
 
 import click
 from eth2deposit.key_handling.keystore import ScryptKeystore
@@ -46,55 +48,16 @@ class LocalStorage(object):
         self.sw_gql_client = get_stakewise_gql_client(chain)
         self.beacon = beacon
         self.mnemonic = mnemonic
-        self.check_mnemonic()
         self.folder = folder
 
     @cached_property
     def local_validator_names(self) -> Set[str]:
         """Fetches names of local validators."""
         try:
-            name = listdir("validators")
+            name = listdir(f"{self.folder}")
             return set(name)
         except FileNotFoundError:
             return set()
-
-    @cached_property
-    def local_current_state(self) -> LocalState:
-        """Returns mappings of local public keys to keystores."""
-        result: LocalState = {}
-        with click.progressbar(
-            self.local_validator_names,
-            label="Fetching local current state\t\t",
-            show_percent=False,
-            show_pos=True,
-        ) as validator_names:
-            for validator_name in validator_names:
-                try:
-                    validator_keystores: Dict[str, str] = []
-                    keystores = listdir(f"{self.folder}/{validator_name}/keystores")
-                    for keystore in keystores:
-                        with open(
-                            f"{self.folder}/{validator_name}/keystores/{keystore}"
-                        ) as f:
-                            data = f.readline()
-                            validator_keystores.append(data)
-                except FileNotFoundError:
-                    continue
-
-                for keystore_str in validator_keystores:
-                    keystore = json.loads(keystore_str)
-                    public_key = add_0x_prefix(HexStr(keystore["pubkey"]))
-                    if public_key in result:
-                        raise click.ClickException(
-                            f"Public key {public_key} is presented in {validator_name}"
-                            f" and {result[public_key]} local validators."
-                            f" You must immediately stop both validators to avoid slashing!"
-                        )
-                    result[public_key] = LocalKeystore(
-                        validator_name=validator_name, keystore=keystore_str
-                    )
-
-        return result
 
     @cached_property
     def all_operators_deposit_data_public_keys(self) -> Dict[HexStr, ChecksumAddress]:
@@ -152,7 +115,7 @@ class LocalStorage(object):
         )
 
     @cached_property
-    def local_missing_keypairs(self) -> OrderedDict[HexStr, SigningKey]:
+    def generate_keystores(self) -> LocalState:
         """
         Returns ordered mapping of BLS public key to private key
         that are in deposit data or active but are missing in the local.
@@ -163,10 +126,6 @@ class LocalStorage(object):
         while True:
             signing_key = get_mnemonic_signing_key(self.mnemonic, from_index)
             public_key = Web3.toHex(G2ProofOfPossession.SkToPk(signing_key.key))
-
-            if public_key in self.local_current_state:
-                from_index += 1
-                continue
 
             if public_key in self.operator_deposit_data_public_keys:
                 missed_keypairs[public_key] = signing_key
@@ -217,82 +176,40 @@ class LocalStorage(object):
         for public_key in exited_public_keys:
             del missed_keypairs[public_key]
 
-        return missed_keypairs
-
-    @cached_property
-    def operator_exited_public_keys(self) -> Set[HexStr]:
-        """Returns operator's public keys that have been exited but are still in the local."""
-        result: Set[HexStr] = set()
-
-        # fetch validators in chunks of 100 keys
-        all_public_keys = list(self.local_current_state.keys())
-        for i in range(0, len(all_public_keys), 100):
-            validators = get_validators(
-                beacon=self.beacon,
-                public_keys=all_public_keys[i : i + 100],
-                state_id="finalized",
-            )
-            for validator in validators:
-                if validator["status"] in EXITED_STATUSES:
-                    public_key = validator["validator"]["pubkey"]
-                    result.add(public_key)
-
-        return result
-
-    @cached_property
-    def local_new_state(self) -> LocalState:
-        """Calculates local new state."""
-        validator_keys_count: Dict[str, int] = collections.Counter(
-            [
-                keystore["validator_name"]
-                for keystore in self.local_current_state.values()
-            ]
-        )
+        validator_keys_count: Dict[str, int] = collections.Counter([])
         total_capacity = MAX_KEYS_PER_VALIDATOR * len(validator_keys_count)
         available_slots = (
             total_capacity
             - sum(validator_keys_count.values())
-            - len(self.operator_exited_public_keys)
         )
-        while available_slots < len(self.local_missing_keypairs):
+        while available_slots < len(missed_keypairs.items()):
             new_validator_name = generate_validator_name(
                 set(validator_keys_count.keys())
             )
             validator_keys_count[new_validator_name] = 0
             available_slots += MAX_KEYS_PER_VALIDATOR
 
-        new_state = copy.deepcopy(self.local_current_state)
-
-        # get rid of exited validator keys
-        for exited_public_key in self.operator_exited_public_keys:
-            if exited_public_key in new_state:
-                validator_name = self.local_current_state[exited_public_key][
-                    "validator_name"
-                ]
-                del new_state[exited_public_key]
-
-                validator_keys_count[validator_name] -= 1
+        new_state: Dict[str, int] = collections.Counter([])
 
         # distribute missing keypairs across validators
         with click.progressbar(
-            self.local_missing_keypairs,
+            missed_keypairs,
             label="Provisioning missing validator keys\t\t",
             show_percent=False,
             show_pos=True,
         ) as missing_keypairs:
             for public_key in missing_keypairs:
                 validator_name = min(validator_keys_count, key=validator_keys_count.get)
-                if public_key not in new_state:
-                    signing_key = self.local_missing_keypairs[public_key]
-                    secret = signing_key.key.to_bytes(32, "big")
-                    password = self.get_or_create_keystore_password(validator_name)
-                    keystore = ScryptKeystore.encrypt(
-                        secret=secret, password=password, path=signing_key.path
-                    ).as_json()
-                    new_state[public_key] = LocalKeystore(
-                        validator_name=validator_name, keystore=keystore
-                    )
-                    validator_keys_count[validator_name] += 1
+                signing_key = missed_keypairs[public_key]
+                secret = signing_key.key.to_bytes(32, "big")
+                password = self.get_or_create_keystore_password(validator_name)
+                keystore = ScryptKeystore.encrypt(
+                    secret=secret, password=password, path=signing_key.path
+                ).as_json()
+                new_state[public_key] = LocalKeystore(
+                    validator_name=validator_name, keystore=keystore
+                )
+                validator_keys_count[validator_name] += 1
 
         return new_state
 
@@ -314,42 +231,24 @@ class LocalStorage(object):
 
     def apply_local_changes(self) -> None:
         """Updates local from current state to new state."""
-        # update validator entries
-        self.sync_local_validators()
 
+        if exists(self.folder):
+            if len(listdir(self.folder)) > 1:
+                exit(f"{self.folder} already exist and not empty")
+        else:
+            try:
+                makedirs(self.folder)
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    raise
+    
         # sync keystores
         self.sync_local_keystores()
-
-    def sync_local_validators(self) -> None:
-        """Synchronizes local validators."""
-        prev_validators: Set[str] = set(
-            [
-                keystore["validator_name"]
-                for keystore in self.local_current_state.values()
-            ]
-        )
-        new_validators: Set[str] = set(
-            [keystore["validator_name"] for keystore in self.local_new_state.values()]
-        )
-
-        removed_validators = prev_validators.difference(new_validators)
-
-        # sync validators
-        with click.progressbar(
-            length=len(new_validators) + len(removed_validators),
-            label="Syncing local validator directories\t\t",
-            show_percent=False,
-            show_pos=True,
-        ) as bar:
-            for validator_name in removed_validators:
-                rmtree(f"{self.folder}/{validator_name}/password", ignore_errors=True)
-                rmtree(f"{self.folder}/{validator_name}/keystores", ignore_errors=True)
-                bar.update(1)
 
     def sync_local_keystores(self) -> None:
         """Synchronizes local keystores."""
         validators_keystores: Dict[str, Dict[str, str]] = {}
-        for public_key, local_keystore in self.local_new_state.items():
+        for public_key, local_keystore in self.generate_keystores.items():
             validator_name = local_keystore["validator_name"]
             keystores = validators_keystores.setdefault(validator_name, {})
             keystore = local_keystore["keystore"]
@@ -424,24 +323,3 @@ class LocalStorage(object):
                         raise click.ClickException(
                             f"Failed to verify keystore for validator {validator_name}"
                         )
-
-    def check_mnemonic(self) -> None:
-        """Checks whether the mnemonic is correct."""
-        if not self.local_current_state:
-            return
-
-        public_key1 = next(iter(self.local_current_state))
-        local_keystore = self.local_current_state[public_key1]
-        keystore = ScryptKeystore.from_json(json.loads(local_keystore["keystore"]))
-
-        from_index = int(keystore.path.split("/")[3])
-
-        signing_key = get_mnemonic_signing_key(
-            mnemonic=self.mnemonic, from_index=from_index
-        )
-        public_key2 = Web3.toHex(G2ProofOfPossession.SkToPk(signing_key.key))
-
-        if public_key1 != public_key2:
-            raise click.ClickException(
-                "The local keys does not belong to the provided mnemonic."
-            )
