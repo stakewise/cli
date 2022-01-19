@@ -32,6 +32,12 @@ def sync_local(chain: str) -> None:
         type=click.STRING,
     )
 
+    folder = click.prompt(
+        'The folder to place the generated keystores and passwords in',
+        default="./validator_keys",
+        type=click.STRING,
+    )
+
     click.clear()
     click.confirm(
         "I confirm that this mnemonic is used only in one staking setup",
@@ -42,6 +48,7 @@ def sync_local(chain: str) -> None:
         beacon=beacon_client,
         chain=chain,
         mnemonic=mnemonic,
+        folder=folder,
     )
 
     local_storage.apply_local_changes()

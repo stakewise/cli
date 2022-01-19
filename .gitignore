@@ -7,4 +7,4 @@ build
 .idea
 local.env
 *.spec
-validators/
+validator_keys/

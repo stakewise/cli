@@ -41,11 +41,13 @@ class LocalStorage(object):
         beacon: Beacon,
         chain: str,
         mnemonic: str,
+        folder: str,
     ):
         self.sw_gql_client = get_stakewise_gql_client(chain)
         self.beacon = beacon
         self.mnemonic = mnemonic
-        # self.check_mnemonic()
+        self.check_mnemonic()
+        self.folder = folder
 
     @cached_property
     def local_validator_names(self) -> Set[str]:
@@ -69,10 +71,10 @@ class LocalStorage(object):
             for validator_name in validator_names:
                 try:
                     validator_keystores: Dict[str, str] = []
-                    keystores = listdir(f"validators/{validator_name}/keystores")
+                    keystores = listdir(f"{self.folder}/{validator_name}/keystores")
                     for keystore in keystores:
                         with open(
-                            f"validators/{validator_name}/keystores/{keystore}"
+                            f"{self.folder}/{validator_name}/keystores/{keystore}"
                         ) as f:
                             data = f.readline()
                             validator_keystores.append(data)
@@ -298,13 +300,13 @@ class LocalStorage(object):
     def get_or_create_keystore_password(self, validator_name) -> str:
         """Retrieves validator keystore password if exists or creates a new one."""
         try:
-            with open(f"validators/{validator_name}/password/password.txt") as file:
+            with open(f"{self.folder}/{validator_name}/password/password.txt") as file:
                 password = file.readline()
         except FileNotFoundError:
             password = generate_password()
-            makedirs(f"validators/{validator_name}/password", exist_ok=True)
+            makedirs(f"{self.folder}/{validator_name}/password", exist_ok=True)
             with open(
-                f"validators/{validator_name}/password/password.txt", "w"
+                f"{self.folder}/{validator_name}/password/password.txt", "w"
             ) as file:
                 file.write(password)
 
@@ -340,8 +342,8 @@ class LocalStorage(object):
             show_pos=True,
         ) as bar:
             for validator_name in removed_validators:
-                rmtree(f"validators/{validator_name}/password", ignore_errors=True)
-                rmtree(f"validators/{validator_name}/keystores", ignore_errors=True)
+                rmtree(f"{self.folder}/{validator_name}/password", ignore_errors=True)
+                rmtree(f"{self.folder}/{validator_name}/keystores", ignore_errors=True)
                 bar.update(1)
 
     def sync_local_keystores(self) -> None:
@@ -371,9 +373,9 @@ class LocalStorage(object):
         ) as _validators_keystores:
             for validator_name in _validators_keystores:
                 for name, keystore in validators_keystores[validator_name].items():
-                    makedirs(f"validators/{validator_name}/keystores", exist_ok=True)
+                    makedirs(f"{self.folder}/{validator_name}/keystores", exist_ok=True)
                     with open(
-                        f"validators/{validator_name}/keystores/" + name, "w"
+                        f"{self.folder}/{validator_name}/keystores/" + name, "w"
                     ) as file:
                         file.write(keystore)
 
@@ -395,10 +397,10 @@ class LocalStorage(object):
             for validator_name in validator_names:
                 try:
                     validator_keystores: Dict[str, str] = []
-                    keystores = listdir(f"validators/{validator_name}/keystores")
+                    keystores = listdir(f"{self.folder}/{validator_name}/keystores")
                     for keystore in keystores:
                         with open(
-                            f"validators/{validator_name}/keystores/{keystore}"
+                            f"{self.folder}/{validator_name}/keystores/{keystore}"
                         ) as f:
                             data = f.readline()
                             validator_keystores.append(data)
