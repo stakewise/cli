@@ -1,16 +1,10 @@
 import click
 from eth2deposit.settings import MAINNET
 from requests.exceptions import ConnectionError, HTTPError
-from web3.beacon import Beacon
 
-from operator_cli.eth2 import validate_mnemonic
+from operator_cli.eth2 import validate_mnemonic, get_beacon_client
 from operator_cli.local_storage import LocalStorage
 from operator_cli.settings import SUPPORTED_CHAINS
-
-
-def get_beacon_client() -> Beacon:
-    url = click.prompt("Please enter the ETH2 node URL", type=click.STRING)
-    return Beacon(base_url=url)
 
 
 @click.command(help="Synchronizes validator keystores in the local storage")

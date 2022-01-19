@@ -85,6 +85,11 @@ EXITED_STATUSES = [
 ]
 
 
+def get_beacon_client() -> Beacon:
+    url = click.prompt("Please enter the ETH2 node URL", type=click.STRING)
+    return Beacon(base_url=url)
+
+
 def validate_mnemonic(mnemonic) -> str:
     if verify_mnemonic(mnemonic, WORD_LISTS_PATH):
         return mnemonic

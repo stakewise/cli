@@ -3,9 +3,8 @@ from eth2deposit.settings import MAINNET
 from hvac import Client as VaultClient
 from hvac.exceptions import InvalidRequest
 from requests.exceptions import ConnectionError, HTTPError
-from web3.beacon import Beacon
 
-from operator_cli.eth2 import validate_mnemonic
+from operator_cli.eth2 import validate_mnemonic, get_beacon_client
 from operator_cli.settings import SUPPORTED_CHAINS, VAULT_VALIDATORS_MOUNT_POINT
 from operator_cli.vault import Vault
 
@@ -14,11 +13,6 @@ def get_vault_client() -> VaultClient:
     token = click.prompt("Please enter the vault token", type=click.STRING)
     url = click.prompt("Please enter the vault URL", type=click.STRING)
     return VaultClient(url=url, token=token)
-
-
-def get_beacon_client() -> Beacon:
-    url = click.prompt("Please enter the ETH2 node URL", type=click.STRING)
-    return Beacon(base_url=url)
 
 
 def get_kubernetes_api_server() -> str:
