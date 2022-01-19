@@ -7,7 +7,7 @@ from operator_cli.local_storage import LocalStorage
 from operator_cli.settings import SUPPORTED_CHAINS
 
 
-@click.command(help="Synchronizes validator keystores in the local storage")
+@click.command(help="Synchronizes validator keystores to the local folder")
 @click.option(
     "--chain",
     default=MAINNET,
@@ -34,7 +34,7 @@ def sync_local(chain: str) -> None:
 
     click.clear()
     click.confirm(
-        "I confirm that this mnemonic is used only for one vault",
+        "I confirm that this mnemonic is used only in one staking setup",
         abort=True,
     )
 
