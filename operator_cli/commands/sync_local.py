@@ -2,7 +2,7 @@ import click
 from eth2deposit.settings import MAINNET
 from requests.exceptions import ConnectionError, HTTPError
 
-from operator_cli.eth2 import validate_mnemonic, get_beacon_client
+from operator_cli.eth2 import get_beacon_client, validate_mnemonic
 from operator_cli.local_storage import LocalStorage
 from operator_cli.settings import SUPPORTED_CHAINS
 
