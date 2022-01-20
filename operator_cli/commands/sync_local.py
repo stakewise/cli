@@ -1,5 +1,6 @@
-import click
 import os
+
+import click
 from eth2deposit.settings import MAINNET
 from requests.exceptions import ConnectionError, HTTPError
 
