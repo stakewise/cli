@@ -202,7 +202,7 @@ class LocalStorage(object):
 
         if exists(self.folder):
             if len(listdir(self.folder)) > 1:
-                click.ClickException(f"{self.folder} already exist and not empty")
+                raise click.ClickException(f"{self.folder} already exist and not empty")
         else:
             try:
                 makedirs(self.folder)

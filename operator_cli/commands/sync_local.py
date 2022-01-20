@@ -1,4 +1,5 @@
 import click
+import os
 from eth2deposit.settings import MAINNET
 from requests.exceptions import ConnectionError, HTTPError
 
@@ -34,7 +35,7 @@ def sync_local(chain: str) -> None:
 
     folder = click.prompt(
         "The folder to place the generated keystores and passwords in",
-        default="./validator_keys",
+        default=os.path.join(os.getcwd(), "validator_keys"),
         type=click.STRING,
     )
 
