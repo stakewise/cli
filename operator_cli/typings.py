@@ -28,7 +28,6 @@ class VaultKeystore(TypedDict):
 
 
 class LocalKeystore(TypedDict):
-    validator_name: str
     keystore: str
 
 

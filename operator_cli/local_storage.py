@@ -1,11 +1,10 @@
-import collections
 import errno
 import json
 import time
 from functools import cached_property, lru_cache
 from os import listdir, makedirs
 from os.path import exists
-from typing import Dict, OrderedDict, Set, Union
+from typing import Dict, Set, Union
 
 import click
 from eth2deposit.key_handling.keystore import ScryptKeystore
@@ -105,7 +104,7 @@ class LocalStorage(object):
         that are in deposit data or active but are missing in the local.
         """
 
-        missed_keypairs: OrderedDict[HexStr, SigningKey] = collections.OrderedDict()
+        missed_keypairs: Dict[HexStr, SigningKey] = {}
         from_index = 0
         while True:
             signing_key = get_mnemonic_signing_key(self.mnemonic, from_index)
@@ -160,7 +159,7 @@ class LocalStorage(object):
         for public_key in exited_public_keys:
             del missed_keypairs[public_key]
 
-        new_state: Dict[str, int] = collections.Counter([])
+        new_state: Dict[int] = {}
 
         # distribute missing keypairs across validators
         with click.progressbar(
@@ -170,7 +169,6 @@ class LocalStorage(object):
             show_pos=True,
         ) as missing_keypairs:
             for public_key in missing_keypairs:
-                validator_name = "validator"
                 signing_key = missed_keypairs[public_key]
                 secret = signing_key.key.to_bytes(32, "big")
                 password = self.get_or_create_keystore_password()
@@ -178,9 +176,8 @@ class LocalStorage(object):
                     secret=secret, password=password, path=signing_key.path
                 ).as_json()
                 new_state[public_key] = LocalKeystore(
-                    validator_name=validator_name, keystore=keystore
+                    keystore=keystore
                 )
-
         return new_state
 
     @lru_cache
@@ -214,10 +211,8 @@ class LocalStorage(object):
 
     def sync_local_keystores(self) -> None:
         """Synchronizes local keystores."""
-        validators_keystores: Dict[str, Dict[str, str]] = {}
+        validators_keystores: Dict[str, str] = {}
         for public_key, local_keystore in self.generate_keystores.items():
-            validator_name = local_keystore["validator_name"]
-            keystores = validators_keystores.setdefault(validator_name, {})
             keystore = local_keystore["keystore"]
             keystore_path = json.loads(keystore)["path"]
 
@@ -228,17 +223,17 @@ class LocalStorage(object):
             )
 
             # save keystore
-            keystores[keystore_name] = keystore
+            validators_keystores[keystore_name] = keystore
 
         # sync keystores in the local storage
         with click.progressbar(
-            validators_keystores,
+            validators_keystores.items(),
             label="Syncing local keystores\t\t",
             show_percent=False,
             show_pos=True,
         ) as _validators_keystores:
-            for validator_name in _validators_keystores:
-                for name, keystore in validators_keystores[validator_name].items():
-                    makedirs(f"{self.folder}/keystores", exist_ok=True)
-                    with open(f"{self.folder}/keystores/{name}", "w") as file:
-                        file.write(keystore)
+            # for validator_name in _validators_keystores:
+            for name, keystore in _validators_keystores:
+                makedirs(f"{self.folder}/keystores", exist_ok=True)
+                with open(f"{self.folder}/keystores/{name}", "w") as file:
+                    file.write(keystore)
