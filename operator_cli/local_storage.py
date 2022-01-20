@@ -175,9 +175,7 @@ class LocalStorage(object):
                 keystore = ScryptKeystore.encrypt(
                     secret=secret, password=password, path=signing_key.path
                 ).as_json()
-                new_state[public_key] = LocalKeystore(
-                    keystore=keystore
-                )
+                new_state[public_key] = LocalKeystore(keystore=keystore)
         return new_state
 
     @lru_cache
