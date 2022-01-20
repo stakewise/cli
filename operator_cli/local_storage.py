@@ -200,15 +200,14 @@ class LocalStorage(object):
     def apply_local_changes(self) -> None:
         """Updates local from current state to new state."""
 
-        if exists(self.folder):
-            if len(listdir(self.folder)) > 1:
-                raise click.ClickException(f"{self.folder} already exist and not empty")
-        else:
-            try:
-                makedirs(self.folder)
-            except OSError as e:
-                if e.errno != errno.EEXIST:
-                    raise e
+        if exists(self.folder) and len(listdir(self.folder)) > 1:
+            raise click.ClickException(f"{self.folder} already exist and not empty")
+
+        try:
+            makedirs(self.folder)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise e
 
         # sync keystores
         self.sync_local_keystores()
