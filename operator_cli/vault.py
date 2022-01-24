@@ -28,11 +28,10 @@ from operator_cli.eth2 import (
 )
 from operator_cli.ipfs import get_operator_deposit_datum
 from operator_cli.queries import get_stakewise_gql_client
-from operator_cli.settings import MIGRATE_LEGACY, VAULT_VALIDATORS_MOUNT_POINT
+from operator_cli.settings import VAULT_VALIDATORS_MOUNT_POINT
 from operator_cli.typings import SigningKey, VaultKeystore, VaultState
 
 MAX_KEYS_PER_VALIDATOR = 100
-LEGACY_TOTAL_KEYS = 1000
 
 VALIDATOR_POLICY = """
 path "%s/%s/*" {
@@ -178,22 +177,8 @@ class Vault(object):
         Returns ordered mapping of BLS public key to private key
         that are in deposit data or active but are missing in the vault.
         """
-        if MIGRATE_LEGACY and self.vault_current_state:
-            raise click.ClickException("Cannot migrate legacy keys to not empty vault")
 
         missed_keypairs: OrderedDict[HexStr, SigningKey] = collections.OrderedDict()
-        if MIGRATE_LEGACY:
-            with click.progressbar(
-                range(LEGACY_TOTAL_KEYS),
-                label=f"Generating {LEGACY_TOTAL_KEYS} legacy keys\t\t",
-                show_percent=False,
-                show_pos=True,
-            ) as indexes:
-                for from_index in indexes:
-                    signing_key = get_mnemonic_signing_key(self.mnemonic, from_index)
-                    public_key = Web3.toHex(G2ProofOfPossession.SkToPk(signing_key.key))
-                    missed_keypairs[public_key] = signing_key
-                return missed_keypairs
 
         from_index = 0
         while True:
@@ -493,10 +478,7 @@ class Vault(object):
         vault_keystore = self.vault_current_state[public_key1]
         keystore = ScryptKeystore.from_json(json.loads(vault_keystore["keystore"]))
 
-        if MIGRATE_LEGACY:
-            from_index = int(keystore.path.split("/")[-1])
-        else:
-            from_index = int(keystore.path.split("/")[3])
+        from_index = int(keystore.path.split("/")[3])
 
         signing_key = get_mnemonic_signing_key(
             mnemonic=self.mnemonic, from_index=from_index
