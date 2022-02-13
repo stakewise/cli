@@ -1,44 +1,26 @@
-from eth2deposit.settings import MAINNET
 from gql import Client, gql
 from gql.transport.requests import RequestsHTTPTransport
 
-from operator_cli.settings import (
-    ETHEREUM_GOERLI_SUBGRAPH_URL,
-    ETHEREUM_MAINNET_SUBGRAPH_URL,
-    STAKEWISE_GOERLI_SUBGRAPH_URL,
-    STAKEWISE_MAINNET_SUBGRAPH_URL,
-)
+from operator_cli.networks import NETWORKS
 
 
-def get_ethereum_gql_client(chain: str) -> Client:
-    if chain == MAINNET:
-        transport = RequestsHTTPTransport(
-            url=ETHEREUM_MAINNET_SUBGRAPH_URL,
-            verify=True,
-            retries=5,
-        )
-    else:
-        transport = RequestsHTTPTransport(
-            url=ETHEREUM_GOERLI_SUBGRAPH_URL,
-            verify=True,
-            retries=5,
-        )
+def get_ethereum_gql_client(network: str) -> Client:
+    network_config = NETWORKS[network]
+    transport = RequestsHTTPTransport(
+        url=network_config["ETHEREUM_SUBGRAPH_URL"],
+        verify=True,
+        retries=5,
+    )
     return Client(transport=transport)
 
 
-def get_stakewise_gql_client(chain: str) -> Client:
-    if chain == MAINNET:
-        transport = RequestsHTTPTransport(
-            url=STAKEWISE_MAINNET_SUBGRAPH_URL,
-            verify=True,
-            retries=5,
-        )
-    else:
-        transport = RequestsHTTPTransport(
-            url=STAKEWISE_GOERLI_SUBGRAPH_URL,
-            verify=True,
-            retries=5,
-        )
+def get_stakewise_gql_client(network: str) -> Client:
+    network_config = NETWORKS[network]
+    transport = RequestsHTTPTransport(
+        url=network_config["STAKEWISE_SUBGRAPH_URL"],
+        verify=True,
+        retries=5,
+    )
     return Client(transport=transport)
 
 
@@ -60,16 +42,6 @@ OPERATOR_QUERY = gql(
       operators(
         where: { id: $address }
       ) {
-        id
-      }
-    }
-"""
-)
-
-OPERATORS_QUERY = gql(
-    """
-    query getOperators {
-      operators {
         id
         depositDataMerkleProofs
       }

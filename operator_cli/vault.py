@@ -3,21 +3,20 @@ import copy
 import json
 import time
 from functools import cached_property, lru_cache
-from typing import Dict, OrderedDict, Set, Union
+from typing import Dict, OrderedDict, Set
 
 import click
-from eth2deposit.key_handling.keystore import ScryptKeystore
 from eth_typing import BLSPubkey, ChecksumAddress, HexStr
 from eth_utils import add_0x_prefix
 from hvac import Client as VaultClient
 from hvac.exceptions import InvalidPath
 from py_ecc.bls import G2ProofOfPossession
+from staking_deposit.key_handling.keystore import ScryptKeystore
 from web3 import Web3
 from web3.beacon import Beacon
 
 from operator_cli.eth1 import (
-    get_operators_deposit_data_merkle_proofs,
-    get_validator_operator_address,
+    get_operator_deposit_data_ipfs_link,
     is_validator_registered,
 )
 from operator_cli.eth2 import (
@@ -27,11 +26,10 @@ from operator_cli.eth2 import (
     get_validators,
 )
 from operator_cli.ipfs import get_operator_deposit_datum
+from operator_cli.networks import NETWORKS
 from operator_cli.queries import get_stakewise_gql_client
 from operator_cli.settings import VAULT_VALIDATORS_MOUNT_POINT
 from operator_cli.typings import SigningKey, VaultKeystore, VaultState
-
-MAX_KEYS_PER_VALIDATOR = 100
 
 VALIDATOR_POLICY = """
 path "%s/%s/*" {
@@ -56,15 +54,19 @@ class Vault(object):
         self,
         vault_client: VaultClient,
         beacon: Beacon,
-        chain: str,
+        operator: ChecksumAddress,
+        network: str,
         mnemonic: str,
         namespace: str,
     ):
         self.vault_client = vault_client
-        self.sw_gql_client = get_stakewise_gql_client(chain)
+        self.network = network
+        self.sw_gql_client = get_stakewise_gql_client(network)
         self.beacon = beacon
         self.mnemonic = mnemonic
         self.namespace = namespace
+        self.max_keys_per_validator = NETWORKS[network]["MAX_KEYS_PER_VALIDATOR"]
+        self.operator_address = operator
         self.check_mnemonic()
 
     @cached_property
@@ -117,59 +119,25 @@ class Vault(object):
         return result
 
     @cached_property
-    def all_operators_deposit_data_public_keys(self) -> Dict[HexStr, ChecksumAddress]:
-        """Fetches public keys and operators from deposit datum."""
-        deposit_data_merkle_proofs = get_operators_deposit_data_merkle_proofs(
-            self.sw_gql_client
-        )
-        result: Dict[HexStr, ChecksumAddress] = {}
-        with click.progressbar(
-            deposit_data_merkle_proofs.items(),
-            label="Fetching deposit datum\t\t",
-            show_percent=False,
-            show_pos=True,
-        ) as merkle_proofs:
-            for operator_addr, merkle_proofs_url in merkle_proofs:
-                deposit_datum = get_operator_deposit_datum(merkle_proofs_url)
-                for deposit_data in deposit_datum:
-                    public_key = deposit_data["public_key"]
-                    if public_key in result:
-                        raise click.ClickException(
-                            f"Public key {public_key} is presented in"
-                            f" deposit datum for {operator_addr} and {result[public_key]} operators"
-                        )
-                    result[public_key] = operator_addr
-
-        return result
-
-    @cached_property
-    def operator_address(self) -> Union[ChecksumAddress, None]:
-        """Returns vault's operator address."""
-        signing_key = get_mnemonic_signing_key(self.mnemonic, 0)
-        first_public_key = Web3.toHex(
-            primitive=G2ProofOfPossession.SkToPk(signing_key.key)
-        )
-        operator_address = get_validator_operator_address(
-            self.sw_gql_client, first_public_key
-        )
-
-        if not operator_address:
-            return self.all_operators_deposit_data_public_keys.get(
-                first_public_key, None
-            )
-
-        return operator_address
-
-    @cached_property
     def operator_deposit_data_public_keys(self) -> Set[HexStr]:
         """Returns operator's deposit data public keys."""
-        return set(
-            [
-                pub_key
-                for pub_key, operator in self.all_operators_deposit_data_public_keys.items()
-                if operator == self.operator_address
-            ]
+        deposit_data_ipfs_link = get_operator_deposit_data_ipfs_link(
+            self.sw_gql_client, self.operator_address
         )
+        result: Set[HexStr] = set()
+        if not deposit_data_ipfs_link:
+            return result
+
+        deposit_datum = get_operator_deposit_datum(deposit_data_ipfs_link)
+        for deposit_data in deposit_datum:
+            public_key = deposit_data["public_key"]
+            if public_key in result:
+                raise click.ClickException(
+                    f"Public key {public_key} is presented twice in {deposit_data_ipfs_link}"
+                )
+            result.add(public_key)
+
+        return result
 
     @cached_property
     def vault_missing_keypairs(self) -> OrderedDict[HexStr, SigningKey]:
@@ -207,11 +175,6 @@ class Vault(object):
         if not missed_keypairs:
             return missed_keypairs
 
-        click.confirm(
-            f"Fetched {len(missed_keypairs)} missing validator keys. Upload them to vault?",
-            abort=True,
-        )
-
         exited_public_keys: Set[HexStr] = set()
         missed_keypairs_items = list(missed_keypairs.items())
         missed_keypairs_count = len(missed_keypairs_items)
@@ -237,6 +200,14 @@ class Vault(object):
 
         for public_key in exited_public_keys:
             del missed_keypairs[public_key]
+
+        click.confirm(
+            click.style(
+                f"Fetched {len(missed_keypairs)} missing validator keys. Upload them to vault?",
+                fg="green",
+            ),
+            abort=True,
+        )
 
         return missed_keypairs
 
@@ -269,7 +240,9 @@ class Vault(object):
                 for keystore in self.vault_current_state.values()
             ]
         )
-        total_capacity = MAX_KEYS_PER_VALIDATOR * len(validator_keys_count)
+
+        # allocate new validator clients if not enough capacity
+        total_capacity = self.max_keys_per_validator * len(validator_keys_count)
         available_slots = (
             total_capacity
             - sum(validator_keys_count.values())
@@ -280,7 +253,7 @@ class Vault(object):
                 set(validator_keys_count.keys())
             )
             validator_keys_count[new_validator_name] = 0
-            available_slots += MAX_KEYS_PER_VALIDATOR
+            available_slots += self.max_keys_per_validator
 
         new_state = copy.deepcopy(self.vault_current_state)
 
@@ -465,6 +438,7 @@ class Vault(object):
 
                     public_keys.add(public_key)
                     if Web3.toBytes(hexstr=keystore["pubkey"]) != public_key:
+                        # derived public key does not match the one in keystore
                         raise click.ClickException(
                             f"Failed to verify keystore {keystore_name} for validator {validator_name}"
                         )

@@ -6,37 +6,32 @@ from typing import Dict, List, Tuple
 
 import backoff
 import click
-from eth2deposit.key_handling.key_derivation.mnemonic import (
-    get_languages,
+from eth_typing import BLSPubkey, BLSSignature, HexStr
+from gql import Client as GqlClient
+from py_ecc.bls import G2ProofOfPossession
+from staking_deposit.key_handling.key_derivation.mnemonic import (
     get_mnemonic,
     get_seed,
     verify_mnemonic,
 )
-from eth2deposit.key_handling.key_derivation.path import path_to_nodes
-from eth2deposit.key_handling.key_derivation.tree import (
+from staking_deposit.key_handling.key_derivation.path import path_to_nodes
+from staking_deposit.key_handling.key_derivation.tree import (
     derive_child_SK,
     derive_master_SK,
 )
-from eth2deposit.settings import PRATER, BaseChainSetting
-from eth2deposit.utils.ssz import DepositData as SSZDepositData
-from eth2deposit.utils.ssz import (
+from staking_deposit.utils.constants import MNEMONIC_LANG_OPTIONS
+from staking_deposit.utils.ssz import DepositData as SSZDepositData
+from staking_deposit.utils.ssz import (
     DepositMessage,
     compute_deposit_domain,
     compute_signing_root,
 )
-from eth_typing import BLSPubkey, BLSSignature, HexStr
-from gql import Client as GqlClient
-from py_ecc.bls import G2ProofOfPossession
 from web3 import Web3
 from web3.beacon import Beacon
 from web3.types import Wei
 
 from operator_cli.merkle_tree import MerkleTree
 from operator_cli.queries import REGISTRATIONS_QUERY
-from operator_cli.settings import (
-    MAINNET_WITHDRAWAL_CREDENTIALS,
-    PRATER_WITHDRAWAL_CREDENTIALS,
-)
 from operator_cli.typings import (
     BLSPrivkey,
     Bytes4,
@@ -50,7 +45,7 @@ from operator_cli.typings import (
 # TODO: find a way to import "from eth2deposit.utils.constants import WORD_LISTS_PATH"
 WORD_LISTS_PATH = os.path.join(os.path.dirname(__file__), "word_lists")
 
-LANGUAGES = get_languages(WORD_LISTS_PATH)
+LANGUAGES = MNEMONIC_LANG_OPTIONS.keys()
 
 SPECIAL_CHARS = "!@#$%^&*()_"
 
@@ -86,7 +81,7 @@ EXITED_STATUSES = [
 
 
 def get_beacon_client() -> Beacon:
-    url = click.prompt("Please enter the ETH2 node URL", type=click.STRING)
+    url = click.prompt("Enter the beacon node URL", type=click.STRING)
     return Beacon(base_url=url)
 
 
@@ -222,7 +217,7 @@ def get_deposit_data_signature(
     amount: Gwei,
     fork_version: Bytes4,
 ) -> Tuple[BLSSignature, Bytes32]:
-    """:returns deposit data for Validator Registration Contract."""
+    """:returns deposit data signature and root for Validator Registration Contract."""
     deposit_message = DepositMessage(
         pubkey=public_key, withdrawal_credentials=withdrawal_credentials, amount=amount
     )
@@ -234,23 +229,38 @@ def get_deposit_data_signature(
     return signature, deposit_data.hash_tree_root
 
 
+def verify_deposit_data(
+    signature: BLSSignature,
+    public_key: BLSPubkey,
+    withdrawal_credentials: Bytes32,
+    amount: Gwei,
+    hash_tree_root: Bytes32,
+    fork_version: Bytes4,
+) -> bool:
+    """:returns verifies deposit data."""
+    deposit_message = DepositMessage(
+        pubkey=public_key, withdrawal_credentials=withdrawal_credentials, amount=amount
+    )
+    domain = compute_deposit_domain(fork_version=fork_version)
+    signing_root = compute_signing_root(deposit_message, domain)
+    if not G2ProofOfPossession.Verify(public_key, signing_root, signature):
+        return False
+
+    deposit_data = SSZDepositData(**deposit_message.as_dict(), signature=signature)
+    return deposit_data.hash_tree_root == hash_tree_root
+
+
 def generate_merkle_deposit_datum(
-    chain_setting: BaseChainSetting,
+    genesis_fork_version: bytes,
+    withdrawal_credentials: HexStr,
     deposit_amount: Wei,
     loading_label: str,
     validator_keypairs: List[KeyPair],
 ) -> Tuple[HexStr, List[MerkleDepositData]]:
     """Generates deposit data with merkle proofs for the validators."""
-    if chain_setting.ETH2_NETWORK_NAME == PRATER:
-        withdrawal_credentials: HexStr = PRATER_WITHDRAWAL_CREDENTIALS
-        withdrawal_credentials_bytes: Bytes32 = Bytes32(
-            w3.toBytes(hexstr=PRATER_WITHDRAWAL_CREDENTIALS)
-        )
-    else:
-        withdrawal_credentials: HexStr = MAINNET_WITHDRAWAL_CREDENTIALS
-        withdrawal_credentials_bytes: Bytes32 = Bytes32(
-            w3.toBytes(hexstr=MAINNET_WITHDRAWAL_CREDENTIALS)
-        )
+    withdrawal_credentials_bytes: Bytes32 = Bytes32(
+        w3.toBytes(hexstr=withdrawal_credentials)
+    )
 
     deposit_amount_gwei: Gwei = Gwei(int(w3.fromWei(deposit_amount, "gwei")))
     merkle_deposit_datum: List[MerkleDepositData] = []
@@ -266,7 +276,7 @@ def generate_merkle_deposit_datum(
                 public_key=BLSPubkey(w3.toBytes(hexstr=public_key)),
                 withdrawal_credentials=withdrawal_credentials_bytes,
                 amount=deposit_amount_gwei,
-                fork_version=Bytes4(chain_setting.GENESIS_FORK_VERSION),
+                fork_version=Bytes4(genesis_fork_version),
             )
             encoded_data: bytes = w3.codec.encode_abi(
                 ["bytes", "bytes32", "bytes", "bytes32"],
