@@ -136,13 +136,13 @@ def generate_specification(
     merkle_root: HexStr, ipfs_url: str, gql_client: GqlClient, operator: ChecksumAddress
 ) -> str:
     specification = f"""
-    ## Specification
+## Specification
 
-    - DAO calls `addOperator` function of `PoolValidators` contract with the following parameters:
-        * operator: `{operator}`
-        * depositDataMerkleRoot: `{merkle_root}`
-        * depositDataMerkleProofs: `{ipfs_url}`
-    """
+- DAO calls `addOperator` function of `PoolValidators` contract with the following parameters:
+    * operator: `{operator}`
+    * depositDataMerkleRoot: `{merkle_root}`
+    * depositDataMerkleProofs: `{ipfs_url}`
+"""
 
     operator_is_registered = check_operator_exists(gql_client, operator)
     if not operator_is_registered:
@@ -154,17 +154,17 @@ def generate_specification(
         if share_percentage > 0:
             specification += f"""
 
-    - DAO calls `setOperator` function of `Roles` contract with the following parameters:
-        * account: `{operator}`
-        * revenueShare: `{share_percentage}`
-    """
+- DAO calls `setOperator` function of `Roles` contract with the following parameters:
+    * account: `{operator}`
+    * revenueShare: `{share_percentage}`
+"""
 
     specification += f"""
 
-    - If the proposal will be approved, the operator must perform the following steps:
-        * Call `operator-cli sync-vault` or `operator-cli sync-local` with the same mnemonic as used for generating the proposal
-        * Create or update validators and make sure the new keys are added
-        * Call `commitOperator` from the `{operator}` address
-    """
+- If the proposal will be approved, the operator must perform the following steps:
+    * Call `operator-cli sync-vault` or `operator-cli sync-local` with the same mnemonic as used for generating the proposal
+    * Create or update validators and make sure the new keys are added
+    * Call `commitOperator` from the `{operator}` address
+"""
 
     return specification
