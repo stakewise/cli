@@ -1,28 +1,4 @@
-from typing import Dict
-
 from decouple import Csv, config
-from eth2deposit.settings import (
-    MAINNET,
-    PRATER,
-    BaseChainSetting,
-    MainnetSetting,
-    PraterSetting,
-)
-
-# supported networks
-SUPPORTED_CHAINS: Dict[str, BaseChainSetting] = {
-    MAINNET: MainnetSetting,
-    PRATER: PraterSetting,
-}
-
-MAINNET_WITHDRAWAL_CREDENTIALS = config(
-    "MAINNET_WITHDRAWAL_CREDENTIALS",
-    default="0x0100000000000000000000002296e122c1a20fca3cac3371357bdad3be0df079",
-)
-PRATER_WITHDRAWAL_CREDENTIALS = config(
-    "PRATER_WITHDRAWAL_CREDENTIALS",
-    default="0x010000000000000000000000040f15c6b5bfc5f324ecab5864c38d4e1eef4218",
-)
 
 # extra pins to pinata for redundancy
 IPFS_PIN_ENDPOINTS = config(
@@ -44,22 +20,4 @@ IPFS_PINATA_SECRET_KEY = config(
 
 VAULT_VALIDATORS_MOUNT_POINT = config(
     "VAULT_VALIDATORS_MOUNT_POINT", default="validators"
-)
-
-ETHEREUM_MAINNET_SUBGRAPH_URL = config(
-    "ETHEREUM_MAINNET_SUBGRAPH_URL",
-    default="https://api.thegraph.com/subgraphs/name/stakewise/ethereum-mainnet",
-)
-ETHEREUM_GOERLI_SUBGRAPH_URL = config(
-    "ETHEREUM_GOERLI_SUBGRAPH_URL",
-    default="https://api.thegraph.com/subgraphs/name/stakewise/ethereum-goerli",
-)
-
-STAKEWISE_MAINNET_SUBGRAPH_URL = config(
-    "ETHEREUM_MAINNET_SUBGRAPH_URL",
-    default="https://api.thegraph.com/subgraphs/name/stakewise/stakewise-mainnet",
-)
-STAKEWISE_GOERLI_SUBGRAPH_URL = config(
-    "ETHEREUM_GOERLI_SUBGRAPH_URL",
-    default="https://api.thegraph.com/subgraphs/name/stakewise/stakewise-goerli",
 )

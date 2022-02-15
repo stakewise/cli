@@ -10,12 +10,12 @@ Read more about operators onboarding process [here](https://docs.stakewise.io/no
 
 See [releases page](https://github.com/stakewise/cli/releases) to download and decompress the corresponding binary files.
 
-### Step 2. Generate DAO proposal
+### Step 2. Create Deposit Data
 
 Run the following command to generate the DAO proposal specification:
 
 ```bash
-./operator-cli generate-proposal
+./operator-cli create-deposit-data
 ```
 
 **NB! You must store the generated mnemonic in a secure cold storage.
@@ -34,7 +34,7 @@ to deploy the ETH2 staking infrastructure.
 ### Step 5. Sync keys to the Vault
 
 You must **use the same mnemonic** as generated in step 1.
-Also, **using the same mnemonic for multiple vaults will result into validators slashings**.
+**NB! Using the same mnemonic for multiple vaults will result into validators slashings**.
 
 Run the following command to sync new validator keys to the vault:
 

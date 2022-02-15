@@ -1,37 +1,63 @@
 import click
-from eth2deposit.settings import MAINNET
+from eth_typing import ChecksumAddress
+from eth_utils import is_address, to_checksum_address
 from hvac import Client as VaultClient
 from hvac.exceptions import InvalidRequest
 from requests.exceptions import ConnectionError, HTTPError
+from web3 import Web3
 
 from operator_cli.eth2 import get_beacon_client, validate_mnemonic
-from operator_cli.settings import SUPPORTED_CHAINS, VAULT_VALIDATORS_MOUNT_POINT
-from operator_cli.vault import Vault
+from operator_cli.networks import (
+    ETHEREUM_GOERLI,
+    ETHEREUM_MAINNET,
+    GNOSIS_CHAIN,
+    NETWORKS,
+)
+from operator_cli.settings import VAULT_VALIDATORS_MOUNT_POINT
+from operator_cli.storages.vault import Vault
 
 
 def get_vault_client() -> VaultClient:
-    token = click.prompt("Please enter the vault token", type=click.STRING)
-    url = click.prompt("Please enter the vault URL", type=click.STRING)
+    token = click.prompt("Enter the vault authentication token", type=click.STRING)
+    url = click.prompt("Enter the vault API URL", type=click.STRING)
     return VaultClient(url=url, token=token)
 
 
 def get_kubernetes_api_server() -> str:
     url = click.prompt(
-        "Please enter host string, a host:port pair, or a URL to the base of the Kubernetes API server",
+        "Enter the Kubernetes API server URL",
         type=click.STRING,
     )
     return url
 
 
+def validate_operator_address(ctx, param, value):
+    try:
+        if is_address(value):
+            return to_checksum_address(value)
+    except ValueError:
+        pass
+
+    raise click.BadParameter("Invalid Ethereum address")
+
+
 @click.command(help="Synchronizes validator keystores in the vault")
 @click.option(
-    "--chain",
-    default=MAINNET,
+    "--network",
+    default=ETHEREUM_MAINNET,
     help="The network of ETH2 you are targeting.",
-    prompt="Choose the (mainnet or testnet) network/chain name",
-    type=click.Choice(SUPPORTED_CHAINS.keys(), case_sensitive=False),
+    prompt="Please choose the network name",
+    type=click.Choice(
+        [ETHEREUM_MAINNET, ETHEREUM_GOERLI, GNOSIS_CHAIN], case_sensitive=False
+    ),
 )
-def sync_vault(chain: str) -> None:
+@click.option(
+    "--operator",
+    help="The operator wallet address specified during deposit data generation.",
+    prompt="Enter your operator wallet address",
+    callback=validate_operator_address,
+)
+def sync_vault(network: str, operator: ChecksumAddress) -> None:
     while True:
         try:
             vault_client = get_vault_client()
@@ -40,19 +66,34 @@ def sync_vault(chain: str) -> None:
         except ConnectionError:
             pass
 
-        click.echo(
-            "Error: failed to connect to the vault server with provided URL and token"
+        click.secho(
+            "Error: failed to connect to the vault server with provided URL and token",
+            bold=True,
+            fg="red",
         )
 
     while True:
         try:
-            beacon_client = get_beacon_client()
-            beacon_client.get_genesis()
+            beacon_client = get_beacon_client(network)
+            genesis = beacon_client.get_genesis()
+            if genesis["data"]["genesis_fork_version"] != Web3.toHex(
+                NETWORKS[network]["GENESIS_FORK_VERSION"]
+            ):
+                click.secho(
+                    "Error: invalid beacon node network",
+                    bold=True,
+                    fg="red",
+                )
+                continue
             break
         except (ConnectionError, HTTPError):
             pass
 
-        click.echo("Error: failed to connect to the ETH2 server with provided URL")
+        click.secho(
+            "Error: failed to connect to the ETH2 server with provided URL",
+            bold=True,
+            fg="red",
+        )
 
     vault_client.secrets.kv.default_kv_version = 1
     try:
@@ -78,7 +119,9 @@ def sync_vault(chain: str) -> None:
         except:  # noqa: E722
             pass
 
-        click.echo("Error: failed to connect to the Kubernetes API host")
+        click.secho(
+            "Error: failed to connect to the Kubernetes API host", bold=True, fg="red"
+        )
 
     namespace = click.prompt(
         "Enter the validators kubernetes namespace",
@@ -92,23 +135,27 @@ def sync_vault(chain: str) -> None:
     )
 
     click.clear()
-    click.confirm(
-        "I confirm that this mnemonic is used only for one vault",
-        abort=True,
+    click.secho(
+        "NB! Using the same mnemonic for multiple vaults will cause validators slashings!",
+        bold=True,
+        fg="red",
     )
 
     vault = Vault(
         vault_client=vault_client,
         beacon=beacon_client,
-        chain=chain,
+        operator=operator,
+        network=network,
         mnemonic=mnemonic,
         namespace=namespace,
     )
 
     vault.apply_vault_changes()
     vault.verify_vault_keystores()
-    click.echo(
+    click.secho(
         f"Make sure you have the following validators"
-        f" running in the {namespace} namespace: {','.join(sorted(vault.vault_validator_names))}."
-        f" Restart them if they were updated."
+        f' running in the "{namespace}" namespace: {",".join(sorted(vault.vault_validator_names))}.'
+        f' If the new keystores were added, upgrade "operator" chart with --set reimportKeystores=true',
+        bold=True,
+        fg="green",
     )

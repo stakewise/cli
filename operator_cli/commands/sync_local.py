@@ -1,32 +1,76 @@
 import os
 
 import click
-from eth2deposit.settings import MAINNET
+from eth_typing import ChecksumAddress
+from eth_utils import is_address, to_checksum_address
 from requests.exceptions import ConnectionError, HTTPError
+from web3 import Web3
 
 from operator_cli.eth2 import get_beacon_client, validate_mnemonic
-from operator_cli.local_storage import LocalStorage
-from operator_cli.settings import SUPPORTED_CHAINS
+from operator_cli.networks import (
+    ETHEREUM_GOERLI,
+    ETHEREUM_MAINNET,
+    GNOSIS_CHAIN,
+    NETWORKS,
+)
+from operator_cli.storages.local import LocalStorage
+
+
+def validate_operator_address(ctx, param, value):
+    try:
+        if is_address(value):
+            return to_checksum_address(value)
+    except ValueError:
+        pass
+
+    raise click.BadParameter("Invalid Ethereum address")
 
 
 @click.command(help="Synchronizes validator keystores to the local folder")
 @click.option(
-    "--chain",
-    default=MAINNET,
+    "--network",
+    default=ETHEREUM_MAINNET,
     help="The network of ETH2 you are targeting.",
-    prompt="Choose the (mainnet or testnet) network/chain name",
-    type=click.Choice(SUPPORTED_CHAINS.keys(), case_sensitive=False),
+    prompt="Please choose the network name",
+    type=click.Choice(
+        [ETHEREUM_MAINNET, ETHEREUM_GOERLI, GNOSIS_CHAIN], case_sensitive=False
+    ),
 )
-def sync_local(chain: str) -> None:
+@click.option(
+    "--operator",
+    help="The operator wallet address specified during deposit data generation.",
+    prompt="Enter your operator wallet address",
+    callback=validate_operator_address,
+)
+@click.option(
+    "--folder",
+    default=os.path.join(os.getcwd(), "validator_keys"),
+    help="The folder where validator keys will be saved.",
+    type=click.Path(exists=False, file_okay=False, dir_okay=True),
+)
+def sync_local(network: str, operator: ChecksumAddress, folder: str) -> None:
     while True:
         try:
-            beacon_client = get_beacon_client()
-            beacon_client.get_genesis()
+            beacon_client = get_beacon_client(network)
+            genesis = beacon_client.get_genesis()
+            if genesis["data"]["genesis_fork_version"] != Web3.toHex(
+                NETWORKS[network]["GENESIS_FORK_VERSION"]
+            ):
+                click.secho(
+                    "Error: invalid beacon node network",
+                    bold=True,
+                    fg="red",
+                )
+                continue
             break
         except (ConnectionError, HTTPError):
             pass
 
-        click.echo("Error: failed to connect to the ETH2 server with provided URL")
+        click.secho(
+            "Error: failed to connect to the ETH2 server with provided URL",
+            bold=True,
+            fg="red",
+        )
 
     mnemonic = click.prompt(
         'Enter your mnemonic separated by spaces (" ")',
@@ -34,23 +78,11 @@ def sync_local(chain: str) -> None:
         type=click.STRING,
     )
 
-    folder = click.prompt(
-        "The folder to place the generated keystores and passwords in",
-        default=os.path.join(os.getcwd(), "validator_keys"),
-        type=click.STRING,
-    )
-
-    click.clear()
-    click.confirm(
-        "I confirm that this mnemonic is used only in one staking setup",
-        abort=True,
-    )
-
     local_storage = LocalStorage(
-        beacon=beacon_client,
-        chain=chain,
+        dst_folder=folder,
+        operator=operator,
+        network=network,
         mnemonic=mnemonic,
-        folder=folder,
     )
 
     local_storage.apply_local_changes()

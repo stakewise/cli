@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List
+from typing import Any, List
 
 import backoff
 import click
@@ -27,7 +27,7 @@ def add_ipfs_prefix(ipfs_id: str) -> str:
 
 
 @backoff.on_exception(backoff.expo, Exception, max_time=180)
-def upload_deposit_datum(deposit_datum: List[MerkleDepositData]) -> str:
+def upload_deposit_data_to_ipfs(deposit_datum: List[MerkleDepositData]) -> str:
     """Submits deposit datum to the IPFS and pins the file."""
     ipfs_ids = []
     for pin_endpoint in IPFS_PIN_ENDPOINTS:
@@ -70,8 +70,8 @@ def upload_deposit_datum(deposit_datum: List[MerkleDepositData]) -> str:
 
 
 @backoff.on_exception(backoff.expo, Exception, max_time=180)
-def get_operator_deposit_datum(ipfs_id: str) -> List[Dict[Any, Any]]:
-    """Fetches the deposit datum of the operator."""
+def ipfs_fetch(ipfs_id: str) -> Any:
+    """Fetches data from IPFS."""
     ipfs_id = ipfs_id.replace("ipfs://", "").replace("/ipfs/", "")
     for ipfs_endpoint in IPFS_PIN_ENDPOINTS:
         try:

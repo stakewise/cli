@@ -8,27 +8,29 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.9"
-python-decouple = "==3.5"
-web3 = "== 5.24.0"
+python-decouple = "==3.6"
+web3 = "==5.28.0"
 py-ecc = "==5.2.0"
-eth2deposit = {git = "https://github.com/ethereum/eth2.0-deposit-cli", rev = "v1.2.0"}
+staking-deposit = {git = "https://github.com/ethereum/eth2.0-deposit-cli", rev = "v2.0.0"}
 hvac = {version = "==0.11.2", extras = ["parser"]}
-gql = {version = "==3.0.0b0", allow-prereleases = true, extras = ["aiohttp"]}
+gql = {version = "==3.0.0", allow-prereleases = true, extras = ["aiohttp"]}
 backoff = "==1.11.1"
-aiohttp = {version = "==3.7.4.post0", extras = ["speedups"]}
+aiohttp = {version = "==3.8.1", extras = ["speedups"]}
 ssz = "==0.2.4"
 click = "==8.0.3"
 requests-toolbelt = "==0.9.1"
+colorama = "==0.4.4"
+pycryptodome = "==3.14.1"
 
 [tool.poetry.dev-dependencies]
-mypy = "==0.910"
-black = "==21.11b0"
+mypy = "==0.931"
+black = "==22.1.0"
 flake8 = "==4.0.1"
 isort = "==5.10.1"
-flake8-black = "==0.2.3"
-flake8-bugbear = "==21.9.2"
-pre-commit = "==2.15.0"
-pyinstaller = "==4.7"
+flake8-black = "==0.2.4"
+flake8-bugbear = "==22.1.11"
+pre-commit = "==2.17.0"
+pyinstaller = "==4.9"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
