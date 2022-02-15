@@ -9,7 +9,7 @@ from eth_utils import add_0x_prefix
 from gql import Client
 from web3 import Web3
 
-from operator_cli.eth1 import generate_specification
+from operator_cli.eth1 import generate_specification, validate_operator_address
 from operator_cli.eth2 import verify_deposit_data
 from operator_cli.ipfs import upload_deposit_data_to_ipfs
 from operator_cli.merkle_tree import MerkleTree
@@ -19,7 +19,11 @@ from operator_cli.networks import (
     GNOSIS_CHAIN,
     NETWORKS,
 )
-from operator_cli.queries import REGISTRATIONS_QUERY, get_ethereum_gql_client
+from operator_cli.queries import (
+    REGISTRATIONS_QUERY,
+    get_ethereum_gql_client,
+    get_stakewise_gql_client,
+)
 from operator_cli.typings import Bytes4, Bytes32, Gwei, MerkleDepositData
 
 w3 = Web3()
@@ -226,7 +230,17 @@ def upload_deposit_data(network: str, path: str) -> None:
     # upload deposit data to IPFS
     ipfs_url = upload_deposit_data_to_ipfs(merkle_deposit_datum)
 
-    specification = generate_specification(network, merkle_root, ipfs_url)
+    operator = click.prompt(
+        "Enter the wallet address that will receive rewards."
+        " If you already run StakeWise validators, please re-use the same wallet address",
+        value_proc=validate_operator_address,
+    )
+    specification = generate_specification(
+        merkle_root=merkle_root,
+        ipfs_url=ipfs_url,
+        gql_client=get_stakewise_gql_client(network),
+        operator=operator,
+    )
     click.clear()
     click.secho(
         "Submit the post to https://forum.stakewise.io with the following specification section:",
