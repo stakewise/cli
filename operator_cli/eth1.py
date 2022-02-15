@@ -1,4 +1,4 @@
-from typing import Dict, Union
+from typing import Dict, List, Union
 
 import backoff
 import click
@@ -7,11 +7,10 @@ from eth_utils import is_address, to_checksum_address
 from gql import Client as GqlClient
 from web3 import Web3
 
-from operator_cli.queries import (
-    OPERATOR_QUERY,
-    VALIDATORS_QUERY,
-    get_stakewise_gql_client,
-)
+from operator_cli.contracts import get_ens_node_id, get_ens_resolver, get_web3_client
+from operator_cli.ipfs import ipfs_fetch
+from operator_cli.networks import ETHEREUM_MAINNET, GNOSIS_CHAIN, NETWORKS
+from operator_cli.queries import OPERATOR_QUERY, VALIDATORS_QUERY
 
 
 @backoff.on_exception(backoff.expo, Exception, max_time=180)
@@ -59,6 +58,41 @@ def get_validator_operator_address(
     return Web3.toChecksumAddress(validators[0]["operator"]["id"])
 
 
+@backoff.on_exception(backoff.expo, Exception, max_time=180)
+def get_operators_committee(network: str) -> List[List[str]]:
+    """Fetches committee config from the DAO's ENS text record."""
+    # XXX: ENS does not support gnosis chain
+    if network == GNOSIS_CHAIN:
+        network = ETHEREUM_MAINNET
+
+    w3 = get_web3_client(network)
+    ens_resolver = get_ens_resolver(network, w3)
+
+    # fetch IPFS URL
+    node_id = get_ens_node_id(NETWORKS[network]["DAO_ENS_NAME"])
+    ens_text_record = NETWORKS[network]["OPERATORS_COMMITTEE_ENS_KEY"]
+
+    committee_config_url = ens_resolver.functions.text(node_id, ens_text_record).call(
+        block_identifier="latest"
+    )
+
+    return ipfs_fetch(committee_config_url)
+
+
+@backoff.on_exception(backoff.expo, Exception, max_time=180)
+def get_operator_allocation_id(gql_client: GqlClient, operator: ChecksumAddress) -> int:
+    """Fetches next operator allocation ID"""
+    result: Dict = gql_client.execute(
+        document=OPERATOR_QUERY,
+        variable_values=dict(address=operator.lower()),
+    )
+    operators = result["operators"]
+    if not operators:
+        return 1
+
+    return int(operators[0]["allocationsCount"]) + 1
+
+
 def validate_share_percentage(value) -> int:
     try:
         percent = float(value)
@@ -98,13 +132,9 @@ def validate_operator_address(value):
     raise click.BadParameter("Invalid Ethereum address")
 
 
-def generate_specification(network: str, merkle_root: HexStr, ipfs_url: str) -> str:
-    operator = click.prompt(
-        "Enter the wallet address that will receive rewards."
-        " If you already run StakeWise validators, please re-use the same wallet address",
-        value_proc=validate_operator_address,
-    )
-
+def generate_specification(
+    merkle_root: HexStr, ipfs_url: str, gql_client: GqlClient, operator: ChecksumAddress
+) -> str:
     specification = f"""
     ## Specification
 
@@ -114,8 +144,7 @@ def generate_specification(network: str, merkle_root: HexStr, ipfs_url: str) -> 
         * depositDataMerkleProofs: `{ipfs_url}`
     """
 
-    stakewise_gql_client = get_stakewise_gql_client(network)
-    operator_is_registered = check_operator_exists(stakewise_gql_client, operator)
+    operator_is_registered = check_operator_exists(gql_client, operator)
     if not operator_is_registered:
         share_percentage = click.prompt(
             "Enter the % of the rewards you would like to receive from the protocol fees",

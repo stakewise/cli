@@ -4,11 +4,17 @@ from eth_utils import is_address, to_checksum_address
 from hvac import Client as VaultClient
 from hvac.exceptions import InvalidRequest
 from requests.exceptions import ConnectionError, HTTPError
+from web3 import Web3
 
 from operator_cli.eth2 import get_beacon_client, validate_mnemonic
-from operator_cli.networks import ETHEREUM_GOERLI, ETHEREUM_MAINNET, GNOSIS_CHAIN
+from operator_cli.networks import (
+    ETHEREUM_GOERLI,
+    ETHEREUM_MAINNET,
+    GNOSIS_CHAIN,
+    NETWORKS,
+)
 from operator_cli.settings import VAULT_VALIDATORS_MOUNT_POINT
-from operator_cli.vault import Vault
+from operator_cli.storages.vault import Vault
 
 
 def get_vault_client() -> VaultClient:
@@ -68,8 +74,17 @@ def sync_vault(network: str, operator: ChecksumAddress) -> None:
 
     while True:
         try:
-            beacon_client = get_beacon_client()
-            beacon_client.get_genesis()
+            beacon_client = get_beacon_client(network)
+            genesis = beacon_client.get_genesis()
+            if genesis["data"]["genesis_fork_version"] != Web3.toHex(
+                NETWORKS[network]["GENESIS_FORK_VERSION"]
+            ):
+                click.secho(
+                    "Error: invalid beacon node network",
+                    bold=True,
+                    fg="red",
+                )
+                continue
             break
         except (ConnectionError, HTTPError):
             pass

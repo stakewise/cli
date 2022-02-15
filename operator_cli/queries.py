@@ -44,6 +44,7 @@ OPERATOR_QUERY = gql(
       ) {
         id
         depositDataMerkleProofs
+        allocationsCount
       }
     }
 """

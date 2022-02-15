@@ -1,6 +1,10 @@
+from os import getcwd
+from os.path import join
+
 import click
 
-from operator_cli.eth1 import generate_specification
+from operator_cli.committee_shares import create_committee_shares
+from operator_cli.eth1 import generate_specification, validate_operator_address
 from operator_cli.eth2 import (
     LANGUAGES,
     VALIDATOR_DEPOSIT_AMOUNT,
@@ -16,7 +20,7 @@ from operator_cli.networks import (
     GNOSIS_CHAIN,
     NETWORKS,
 )
-from operator_cli.queries import get_ethereum_gql_client
+from operator_cli.queries import get_ethereum_gql_client, get_stakewise_gql_client
 
 
 @click.command(help="Creates deposit data and generates a forum post specification")
@@ -34,7 +38,15 @@ from operator_cli.queries import get_ethereum_gql_client
     is_flag=True,
     help="Indicates whether the deposit data is generated for the existing mnemonic.",
 )
-def create_deposit_data(network: str, existing_mnemonic: bool) -> None:
+@click.option(
+    "--committee-folder",
+    default=join(getcwd(), "committee"),
+    help="The folder where committee files will be saved.",
+    type=click.Path(exists=False, file_okay=False, dir_okay=True),
+)
+def create_deposit_data(
+    network: str, existing_mnemonic: bool, committee_folder: str
+) -> None:
     if not existing_mnemonic:
         language = click.prompt(
             "Choose your mnemonic language",
@@ -69,14 +81,33 @@ def create_deposit_data(network: str, existing_mnemonic: bool) -> None:
         validator_keypairs=keypairs,
     )
 
-    # TODO: Generate and save exit signatures
+    # 3. Assign operator wallet address
+    operator = click.prompt(
+        "Enter the wallet address that will receive rewards."
+        " If you already run StakeWise validators, please re-use the same wallet address",
+        value_proc=validate_operator_address,
+    )
 
-    # 3. Upload deposit data to IPFS
+    # 4. Generate private key shares for the committee
+    sw_gql_client = get_stakewise_gql_client(network)
+    committee_paths = create_committee_shares(
+        network=network,
+        gql_client=sw_gql_client,
+        operator=operator,
+        committee_folder=committee_folder,
+        keypairs=keypairs,
+    )
+
+    # 5. Upload deposit data to IPFS
     ipfs_url = upload_deposit_data_to_ipfs(deposit_data)
-    click.clear()
 
-    # 4. Generate proposal specification part
-    specification = generate_specification(network, deposit_data_merkle_root, ipfs_url)
+    # 6. Generate proposal specification part
+    specification = generate_specification(
+        merkle_root=deposit_data_merkle_root,
+        ipfs_url=ipfs_url,
+        gql_client=sw_gql_client,
+        operator=operator,
+    )
     click.clear()
     click.secho(
         "Submit the post to https://forum.stakewise.io with the following specification section:",
@@ -84,3 +115,12 @@ def create_deposit_data(network: str, existing_mnemonic: bool) -> None:
         fg="green",
     )
     click.echo(specification)
+
+    # 7. Generate committee message
+    click.secho(
+        "Share the encrypted validator key shares with the committee members through Telegram:",
+        bold=True,
+        fg="green",
+    )
+    for username, path in committee_paths.items():
+        click.echo(f"- @{username}: {path}")

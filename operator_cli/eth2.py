@@ -80,8 +80,8 @@ EXITED_STATUSES = [
 ]
 
 
-def get_beacon_client() -> Beacon:
-    url = click.prompt("Enter the beacon node URL", type=click.STRING)
+def get_beacon_client(network: str) -> Beacon:
+    url = click.prompt(f"Enter the beacon node URL for {network}", type=click.STRING)
     return Beacon(base_url=url)
 
 

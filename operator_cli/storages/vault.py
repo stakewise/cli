@@ -25,7 +25,7 @@ from operator_cli.eth2 import (
     get_mnemonic_signing_key,
     get_validators,
 )
-from operator_cli.ipfs import get_operator_deposit_datum
+from operator_cli.ipfs import ipfs_fetch
 from operator_cli.networks import NETWORKS
 from operator_cli.queries import get_stakewise_gql_client
 from operator_cli.settings import VAULT_VALIDATORS_MOUNT_POINT
@@ -128,7 +128,7 @@ class Vault(object):
         if not deposit_data_ipfs_link:
             return result
 
-        deposit_datum = get_operator_deposit_datum(deposit_data_ipfs_link)
+        deposit_datum = ipfs_fetch(deposit_data_ipfs_link)
         for deposit_data in deposit_datum:
             public_key = deposit_data["public_key"]
             if public_key in result:
