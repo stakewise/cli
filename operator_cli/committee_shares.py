@@ -88,11 +88,17 @@ def create_committee_shares(
     ]
     for keypair in keypairs:
         committee_shares_total = len(committee)
-        committee_shares = get_bls_secret_shares(
-            private_key=keypair["private_key"],
-            total=committee_shares_total,
-            threshold=committee_shares_total,
-        )
+        if committee_shares_total > 1:
+            committee_shares = get_bls_secret_shares(
+                private_key=keypair["private_key"],
+                total=committee_shares_total,
+                threshold=committee_shares_total,
+            )
+        elif committee_shares_total == 1:
+            committee_shares = [keypair["private_key"]]
+        else:
+            raise click.ClickException(f"Invalid committee: {committee}")
+
         for i, committee_share in enumerate(committee_shares):
             members_shares_total = len(committee[i])
             members_shares_threshold = (members_shares_total // 2) + 1
