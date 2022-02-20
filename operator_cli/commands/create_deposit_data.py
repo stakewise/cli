@@ -14,23 +14,18 @@ from operator_cli.eth2 import (
     validate_mnemonic,
 )
 from operator_cli.ipfs import upload_deposit_data_to_ipfs
-from operator_cli.networks import (
-    ETHEREUM_GOERLI,
-    ETHEREUM_MAINNET,
-    GNOSIS_CHAIN,
-    NETWORKS,
-)
+from operator_cli.networks import GNOSIS_CHAIN, GOERLI, MAINNET, NETWORKS, PERM_GOERLI
 from operator_cli.queries import get_ethereum_gql_client, get_stakewise_gql_client
 
 
 @click.command(help="Creates deposit data and generates a forum post specification")
 @click.option(
     "--network",
-    default=ETHEREUM_MAINNET,
+    default=MAINNET,
     help="The network to generate the deposit data for",
     prompt="Enter the network name",
     type=click.Choice(
-        [ETHEREUM_MAINNET, ETHEREUM_GOERLI, GNOSIS_CHAIN], case_sensitive=False
+        [MAINNET, GOERLI, PERM_GOERLI, GNOSIS_CHAIN], case_sensitive=False
     ),
 )
 @click.option(
@@ -90,13 +85,15 @@ def create_deposit_data(
 
     # 4. Generate private key shares for the committee
     sw_gql_client = get_stakewise_gql_client(network)
-    committee_paths = create_committee_shares(
-        network=network,
-        gql_client=sw_gql_client,
-        operator=operator,
-        committee_folder=committee_folder,
-        keypairs=keypairs,
-    )
+    if network != PERM_GOERLI:
+        # no private key shares form permissioned network
+        committee_paths = create_committee_shares(
+            network=network,
+            gql_client=sw_gql_client,
+            operator=operator,
+            committee_folder=committee_folder,
+            keypairs=keypairs,
+        )
 
     # 5. Upload deposit data to IPFS
     ipfs_url = upload_deposit_data_to_ipfs(deposit_data)
@@ -117,10 +114,13 @@ def create_deposit_data(
     click.echo(specification)
 
     # 7. Generate committee message
-    click.secho(
-        "Share the encrypted validator key shares with the committee members through Telegram:",
-        bold=True,
-        fg="green",
-    )
-    for username, path in committee_paths.items():
-        click.echo(f"- @{username}: {path}")
+    if network != PERM_GOERLI:
+        # no private key shares form permissioned network
+        click.secho(
+            "Share the encrypted validator key shares with the committee members through Telegram:",
+            bold=True,
+            fg="green",
+        )
+        # noinspection PyUnboundLocalVariable
+        for username, path in committee_paths.items():
+            click.echo(f"- @{username}: {path}")

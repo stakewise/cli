@@ -9,7 +9,7 @@ from web3 import Web3
 
 from operator_cli.contracts import get_ens_node_id, get_ens_resolver, get_web3_client
 from operator_cli.ipfs import ipfs_fetch
-from operator_cli.networks import ETHEREUM_MAINNET, GNOSIS_CHAIN, NETWORKS
+from operator_cli.networks import GNOSIS_CHAIN, MAINNET, NETWORKS
 from operator_cli.queries import OPERATOR_QUERY, VALIDATORS_QUERY
 
 
@@ -63,7 +63,7 @@ def get_operators_committee(network: str) -> List[List[str]]:
     """Fetches committee config from the DAO's ENS text record."""
     # XXX: ENS does not support gnosis chain
     if network == GNOSIS_CHAIN:
-        network = ETHEREUM_MAINNET
+        network = MAINNET
 
     w3 = get_web3_client(network)
     ens_resolver = get_ens_resolver(network, w3)

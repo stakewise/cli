@@ -1,11 +1,12 @@
 from decouple import config
 
-ETHEREUM_MAINNET = "mainnet"
-ETHEREUM_GOERLI = "goerli"
+MAINNET = "mainnet"
+GOERLI = "goerli"
+PERM_GOERLI = "perm_goerli"
 GNOSIS_CHAIN = "gnosis"
 
 NETWORKS = {
-    ETHEREUM_MAINNET: dict(
+    MAINNET: dict(
         STAKEWISE_SUBGRAPH_URL=config(
             "STAKEWISE_SUBGRAPH_URL",
             default="https://api.thegraph.com/subgraphs/name/stakewise/stakewise-mainnet",
@@ -29,7 +30,7 @@ NETWORKS = {
         OPERATORS_COMMITTEE_ENS_KEY="operators_committee",
         IS_POA=False,
     ),
-    ETHEREUM_GOERLI: dict(
+    GOERLI: dict(
         STAKEWISE_SUBGRAPH_URL=config(
             "STAKEWISE_SUBGRAPH_URL",
             default="https://api.thegraph.com/subgraphs/name/stakewise/stakewise-goerli",
@@ -45,12 +46,36 @@ NETWORKS = {
         GENESIS_FORK_VERSION=bytes.fromhex("00001020"),
         MAX_KEYS_PER_VALIDATOR=100,
         ETH1_ENDPOINT=config(
-            "WITHDRAWAL_CREDENTIALS",
+            "ETH1_ENDPOINT",
             default="https://goerli.infura.io/v3/84842078b09946638c03157f83405213",
         ),
         DAO_ENS_NAME="stakewise.eth",
         ENS_RESOLVER_CONTRACT_ADDRESS="0x4B1488B7a6B320d2D721406204aBc3eeAa9AD329",
         OPERATORS_COMMITTEE_ENS_KEY="operators_committee",
+        IS_POA=True,
+    ),
+    PERM_GOERLI: dict(
+        STAKEWISE_SUBGRAPH_URL=config(
+            "STAKEWISE_SUBGRAPH_URL",
+            default="https://api.thegraph.com/subgraphs/name/stakewise/stakewise-perm-goerli",
+        ),
+        ETHEREUM_SUBGRAPH_URL=config(
+            "ETHEREUM_SUBGRAPH_URL",
+            default="https://api.thegraph.com/subgraphs/name/stakewise/ethereum-goerli",
+        ),
+        WITHDRAWAL_CREDENTIALS=config(
+            "WITHDRAWAL_CREDENTIALS",
+            default="0x0100000000000000000000006dfc9682e3c3263758ad96e2b2ba9822167f81ee",
+        ),
+        GENESIS_FORK_VERSION=bytes.fromhex("00001020"),
+        MAX_KEYS_PER_VALIDATOR=100,
+        ETH1_ENDPOINT=config(
+            "ETH1_ENDPOINT",
+            default="https://goerli.infura.io/v3/84842078b09946638c03157f83405213",
+        ),
+        DAO_ENS_NAME="",
+        ENS_RESOLVER_CONTRACT_ADDRESS="0x4B1488B7a6B320d2D721406204aBc3eeAa9AD329",
+        OPERATORS_COMMITTEE_ENS_KEY="",
         IS_POA=True,
     ),
     GNOSIS_CHAIN: dict(

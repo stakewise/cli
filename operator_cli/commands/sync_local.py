@@ -7,12 +7,7 @@ from requests.exceptions import ConnectionError, HTTPError
 from web3 import Web3
 
 from operator_cli.eth2 import get_beacon_client, validate_mnemonic
-from operator_cli.networks import (
-    ETHEREUM_GOERLI,
-    ETHEREUM_MAINNET,
-    GNOSIS_CHAIN,
-    NETWORKS,
-)
+from operator_cli.networks import GNOSIS_CHAIN, GOERLI, MAINNET, NETWORKS, PERM_GOERLI
 from operator_cli.storages.local import LocalStorage
 
 
@@ -29,11 +24,11 @@ def validate_operator_address(ctx, param, value):
 @click.command(help="Synchronizes validator keystores to the local folder")
 @click.option(
     "--network",
-    default=ETHEREUM_MAINNET,
+    default=MAINNET,
     help="The network of ETH2 you are targeting.",
     prompt="Please choose the network name",
     type=click.Choice(
-        [ETHEREUM_MAINNET, ETHEREUM_GOERLI, GNOSIS_CHAIN], case_sensitive=False
+        [MAINNET, GOERLI, PERM_GOERLI, GNOSIS_CHAIN], case_sensitive=False
     ),
 )
 @click.option(

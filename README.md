@@ -1,8 +1,8 @@
 # Operator CLI
 
 Operators CLI generates validators keys and deposit data for the validators.
-The validator keys have to be uploaded to the Hashicorp Vault for the secure storage.
-Read more about operators onboarding process [here](https://docs.stakewise.io/node-operator/dao-proposal)
+The validator keys have to be uploaded to the Hashicorp Vault or fetched locally.
+Read more about [operators onboarding process](https://docs.stakewise.io/node-operator/onboarding-process)
 
 ## Usage
 
@@ -12,7 +12,7 @@ See [releases page](https://github.com/stakewise/cli/releases) to download and d
 
 ### Step 2. Create Deposit Data
 
-Run the following command to generate the DAO proposal specification:
+Run the following command to create deposit data and DAO proposal specification:
 
 ```bash
 ./operator-cli create-deposit-data
@@ -28,7 +28,7 @@ In your post you must include the `Specification` section that was generated in 
 
 ### Step 4. Deploy ETH2 infrastructure
 
-If the proposal from the previous step got approved by the DAO, follow the instructions [here](https://docs.stakewise.io/node-operator/stakewise-infra-package)
+If the proposal from the previous step got approved by the DAO, follow the instructions [here](https://docs.stakewise.io/node-operator/stakewise-infra-package/usage)
 to deploy the ETH2 staking infrastructure.
 
 ### Step 5. Sync keys to the Vault or locally
@@ -48,13 +48,13 @@ or to sync them locally
 ./operator-cli sync-local
 ```
 
-After uploading the keys, make sure you have the right number of validators running and restart those that got new keys added.
+After fetching the keys, make sure you have the right number of validators running and restart those that got new keys added.
 
 ### Step 6. Commit Operator
 
 Once you're 100% ready for Ether assignments, commit your operator:
 
-- Go to the Operators smart contract ([Goerli](https://goerli.etherscan.io/address/0x0d92156861a0BC7037cC21470327Bd3Bc750EB1D#writeProxyContract), [Mainnet](https://etherscan.io/address/0x002932e11E95DC84C17ed5f94a0439645D8a97BC))
+- Go to the Operators smart contract ([Goerli](https://goerli.etherscan.io/address/0x0d92156861a0BC7037cC21470327Bd3Bc750EB1D#writeProxyContract), [Perm Goerli](https://goerli.etherscan.io/address/0x7C27896338e3130036E53BCC0f013cB20e21991c#writeProxyContract), [Mainnet](https://etherscan.io/address/0x002932e11E95DC84C17ed5f94a0439645D8a97BC))
 - Click on `Connect to Web3` button and connect your wallet. The address must match the one used during proposal generation.
 - Call `commitOperator` function. If that's your onboarding, you must deposit 1 ETH (specified in Wei) collateral together with the call.
 
