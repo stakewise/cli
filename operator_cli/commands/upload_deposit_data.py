@@ -13,12 +13,7 @@ from operator_cli.eth1 import generate_specification, validate_operator_address
 from operator_cli.eth2 import verify_deposit_data
 from operator_cli.ipfs import upload_deposit_data_to_ipfs
 from operator_cli.merkle_tree import MerkleTree
-from operator_cli.networks import (
-    ETHEREUM_GOERLI,
-    ETHEREUM_MAINNET,
-    GNOSIS_CHAIN,
-    NETWORKS,
-)
+from operator_cli.networks import GNOSIS_CHAIN, GOERLI, MAINNET, NETWORKS, PERM_GOERLI
 from operator_cli.queries import (
     REGISTRATIONS_QUERY,
     get_ethereum_gql_client,
@@ -162,11 +157,11 @@ def check_public_keys_not_registered(
 )
 @click.option(
     "--network",
-    default=ETHEREUM_MAINNET,
+    default=MAINNET,
     help="The network of ETH2 you are targeting.",
     prompt="Please choose the network name",
     type=click.Choice(
-        [ETHEREUM_MAINNET, ETHEREUM_GOERLI, GNOSIS_CHAIN], case_sensitive=False
+        [MAINNET, GOERLI, PERM_GOERLI, GNOSIS_CHAIN], case_sensitive=False
     ),
 )
 @click.option(
