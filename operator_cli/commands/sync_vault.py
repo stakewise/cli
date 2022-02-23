@@ -148,9 +148,10 @@ def sync_vault(network: str, operator: ChecksumAddress) -> None:
     vault.apply_vault_changes()
     vault.verify_vault_keystores()
     click.secho(
-        f"Make sure you have the following validators"
-        f' running in the "{namespace}" namespace: {",".join(sorted(vault.vault_validator_names))}.'
-        f' If the new keystores were added, upgrade "operator" chart with --set reimportKeystores=true',
+        f"The vault contains {len(vault.vault_new_state)} validator keys."
+        f' Please upgrade the "validators" helm chart with "validatorsCount" set to {len(vault.vault_validator_names)}'
+        f' and "reimportKeystores" set to "true". Make sure you have the following validators running '
+        f'in the "{namespace}" namespace: {",".join(sorted(vault.vault_validator_names))}.',
         bold=True,
         fg="green",
     )
