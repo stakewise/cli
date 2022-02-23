@@ -85,7 +85,7 @@ class LocalStorage(object):
                     click.secho(
                         f"Public key {public_key} is in deposit data and already in use, skipping...",
                         bold=True,
-                        fg="orange",
+                        fg="red",
                     )
                     bar.update(1)
                     continue
