@@ -9,3 +9,4 @@ local.env
 *.spec
 validator_keys/
 committee/
+keys/

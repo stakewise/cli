@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "operator-cli"
+name = "stakewise-cli"
 version = "1.0.0"
 description = "StakeWise Operator CLI is used to generate and manage ETH2 validator keys."
 authors = ["Dmitri Tsumak <tsumak.dmitri@gmail.com>"]

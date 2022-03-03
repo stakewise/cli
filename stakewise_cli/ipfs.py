@@ -6,14 +6,14 @@ import click
 import ipfshttpclient
 import requests
 
-from operator_cli.settings import (
+from stakewise_cli.settings import (
     IPFS_FETCH_ENDPOINTS,
     IPFS_PIN_ENDPOINTS,
     IPFS_PINATA_API_KEY,
     IPFS_PINATA_PIN_ENDPOINT,
     IPFS_PINATA_SECRET_KEY,
 )
-from operator_cli.typings import MerkleDepositData
+from stakewise_cli.typings import MerkleDepositData
 
 
 def add_ipfs_prefix(ipfs_id: str) -> str:

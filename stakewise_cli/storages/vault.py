@@ -15,21 +15,21 @@ from staking_deposit.key_handling.keystore import ScryptKeystore
 from web3 import Web3
 from web3.beacon import Beacon
 
-from operator_cli.eth1 import (
+from stakewise_cli.eth1 import (
     get_operator_deposit_data_ipfs_link,
     is_validator_registered,
 )
-from operator_cli.eth2 import (
+from stakewise_cli.eth2 import (
     EXITED_STATUSES,
     generate_password,
     get_mnemonic_signing_key,
     get_validators,
 )
-from operator_cli.ipfs import ipfs_fetch
-from operator_cli.networks import NETWORKS
-from operator_cli.queries import get_stakewise_gql_client
-from operator_cli.settings import VAULT_VALIDATORS_MOUNT_POINT
-from operator_cli.typings import SigningKey, VaultKeystore, VaultState
+from stakewise_cli.ipfs import ipfs_fetch
+from stakewise_cli.networks import NETWORKS
+from stakewise_cli.queries import get_stakewise_gql_client
+from stakewise_cli.settings import VAULT_VALIDATORS_MOUNT_POINT
+from stakewise_cli.typings import SigningKey, VaultKeystore, VaultState
 
 VALIDATOR_POLICY = """
 path "%s/%s/*" {

@@ -1,7 +1,7 @@
 from gql import Client, gql
 from gql.transport.requests import RequestsHTTPTransport
 
-from operator_cli.networks import NETWORKS
+from stakewise_cli.networks import NETWORKS
 
 
 def get_ethereum_gql_client(network: str) -> Client:

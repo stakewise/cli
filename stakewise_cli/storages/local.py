@@ -11,13 +11,13 @@ from py_ecc.bls import G2ProofOfPossession
 from staking_deposit.key_handling.keystore import ScryptKeystore
 from web3 import Web3
 
-from operator_cli.eth1 import (
+from stakewise_cli.eth1 import (
     get_operator_deposit_data_ipfs_link,
     is_validator_registered,
 )
-from operator_cli.eth2 import generate_password, get_mnemonic_signing_key
-from operator_cli.ipfs import ipfs_fetch
-from operator_cli.queries import get_stakewise_gql_client
+from stakewise_cli.eth2 import generate_password, get_mnemonic_signing_key
+from stakewise_cli.ipfs import ipfs_fetch
+from stakewise_cli.queries import get_stakewise_gql_client
 
 
 class LocalStorage(object):

@@ -13,8 +13,8 @@ from gql import Client
 from py_ecc.bls.ciphersuites import G2ProofOfPossession
 from py_ecc.optimized_bls12_381.optimized_curve import curve_order
 
-from operator_cli.eth1 import get_operator_allocation_id, get_operators_committee
-from operator_cli.typings import BLSPrivkey, KeyPair
+from stakewise_cli.eth1 import get_operator_allocation_id, get_operators_committee
+from stakewise_cli.typings import BLSPrivkey, KeyPair
 
 PRIME = curve_order
 

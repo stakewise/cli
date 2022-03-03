@@ -30,9 +30,9 @@ from web3 import Web3
 from web3.beacon import Beacon
 from web3.types import Wei
 
-from operator_cli.merkle_tree import MerkleTree
-from operator_cli.queries import REGISTRATIONS_QUERY
-from operator_cli.typings import (
+from stakewise_cli.merkle_tree import MerkleTree
+from stakewise_cli.queries import REGISTRATIONS_QUERY
+from stakewise_cli.typings import (
     BLSPrivkey,
     Bytes4,
     Bytes32,

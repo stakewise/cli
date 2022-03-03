@@ -9,17 +9,17 @@ from eth_utils import add_0x_prefix
 from gql import Client
 from web3 import Web3
 
-from operator_cli.eth1 import generate_specification, validate_operator_address
-from operator_cli.eth2 import verify_deposit_data
-from operator_cli.ipfs import upload_deposit_data_to_ipfs
-from operator_cli.merkle_tree import MerkleTree
-from operator_cli.networks import GNOSIS_CHAIN, GOERLI, MAINNET, NETWORKS, PERM_GOERLI
-from operator_cli.queries import (
+from stakewise_cli.eth1 import generate_specification, validate_operator_address
+from stakewise_cli.eth2 import verify_deposit_data
+from stakewise_cli.ipfs import upload_deposit_data_to_ipfs
+from stakewise_cli.merkle_tree import MerkleTree
+from stakewise_cli.networks import GNOSIS_CHAIN, GOERLI, MAINNET, NETWORKS, PERM_GOERLI
+from stakewise_cli.queries import (
     REGISTRATIONS_QUERY,
     get_ethereum_gql_client,
     get_stakewise_gql_client,
 )
-from operator_cli.typings import Bytes4, Bytes32, Gwei, MerkleDepositData
+from stakewise_cli.typings import Bytes4, Bytes32, Gwei, MerkleDepositData
 
 w3 = Web3()
 
