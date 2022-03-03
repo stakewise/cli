@@ -8,7 +8,9 @@ from stakewise_cli.commands.create_deposit_data import create_deposit_data  # no
 from stakewise_cli.commands.sync_local import sync_local  # noqa: E402
 from stakewise_cli.commands.sync_vault import sync_vault  # noqa: E402
 from stakewise_cli.commands.upload_deposit_data import upload_deposit_data  # noqa: E402
-from stakewise_cli.commands.verify_committee_file import verify_committee_file  # noqa: E402
+from stakewise_cli.commands.verify_committee_file import (  # noqa: E402
+    verify_committee_file,
+)
 
 
 @click.group()
