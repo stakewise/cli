@@ -5,31 +5,32 @@ import click
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from py_ecc.bls import G2ProofOfPossession
+from web3 import Web3
 
 
-@click.command(help="Verify committee file")
+@click.command(help="Command for verifying operator shard")
 @click.option(
-    "--committee-file",
+    "--shard",
     default=join(getcwd()),
-    help="Path to committee file.",
-    type=click.Path(exists=False, file_okay=True, dir_okay=True),
+    help="Path to the operator shard file.",
+    type=click.Path(exists=False, file_okay=True, dir_okay=False),
 )
 @click.option(
     "--private-key",
     default=join(getcwd()),
     help="Path to private key file.",
-    type=click.Path(exists=False, file_okay=True, dir_okay=True),
+    type=click.Path(exists=False, file_okay=True, dir_okay=False),
 )
-def verify_committee_file(committee_file, private_key) -> None:
-    while not isfile(committee_file):
-        print("Committee file not found")
-        committee_file = input("Enter path to committee file: ")
+def verify_operator_shard(shard, private_key) -> None:
+    while not isfile(shard):
+        print("Operator shard file not found")
+        shard = input("Enter path to the operator shard file: ")
 
     while not isfile(private_key):
         print("Private key file not found")
-        private_key = input("Enter path to private key file: ")
+        private_key = input("Enter path to the private key file: ")
 
-    file_in = open(committee_file, "rb")
+    file_in = open(shard, "rb")
 
     try:
         private_key = RSA.import_key(open(private_key).read())
@@ -45,24 +46,25 @@ def verify_committee_file(committee_file, private_key) -> None:
     try:
         session_key = cipher_rsa.decrypt(enc_session_key)
     except (UnboundLocalError, ValueError):  # noqa: E722
-        print("Verify failed")
+        raise click.ClickException(
+            "Failed to decrypt the session key. Please check whether the paths to private key and shard are correct"
+        )
 
     # Decrypt the data with the AES session key
     cipher_aes = AES.new(session_key, AES.MODE_EAX, nonce)
     try:
         private_keys = cipher_aes.decrypt_and_verify(ciphertext, tag)
     except (UnboundLocalError, ValueError, TypeError):
-        print("Verify failed")
+        raise click.ClickException(
+            "Failed to decrypt the session key. Please check whether the paths to private key and shard are correct"
+        )
 
-    message = b"\xab" * 32
     public_keys = [G2ProofOfPossession.SkToPk(key) for key in private_keys]
-    signatures = [G2ProofOfPossession.Sign(key, message) for key in private_keys]
-    agg_sig = G2ProofOfPossession.Aggregate(signatures)
-    assert G2ProofOfPossession.FastAggregateVerify(public_keys, message, agg_sig)
+    agg_public_key = G2ProofOfPossession._AggregatePKs(public_keys)
 
     click.secho(
-        "Submit the post to https://forum.stakewise.io with the following aggregated signature:",
+        "Please submit the following post to https://forum.stakewise.io for the operator who sent the shard file:",
         bold=True,
         fg="green",
     )
-    click.echo(agg_sig)
+    click.echo(f"Shard Aggregated Public Key: {Web3.toHex(agg_public_key)}")
