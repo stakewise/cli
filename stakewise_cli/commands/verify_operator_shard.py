@@ -11,24 +11,30 @@ from web3 import Web3
 @click.command(help="Command for verifying operator shard")
 @click.option(
     "--shard",
-    default=join(getcwd()),
     help="Path to the operator shard file.",
     type=click.Path(exists=False, file_okay=True, dir_okay=False),
 )
 @click.option(
     "--private-key",
-    default=join(getcwd()),
-    help="Path to private key file.",
+    help="Path to the committee private key file.",
     type=click.Path(exists=False, file_okay=True, dir_okay=False),
 )
-def verify_operator_shard(shard, private_key) -> None:
+def verify_operator_shard(shard: str, private_key: str) -> None:
     while not isfile(shard):
-        print("Operator shard file not found")
+        click.secho(
+            "Error: operator shard not found",
+            bold=True,
+            fg="red",
+        )
         shard = input("Enter path to the operator shard file: ")
 
     while not isfile(private_key):
-        print("Private key file not found")
-        private_key = input("Enter path to the private key file: ")
+        click.secho(
+            "Error: private key file not found",
+            bold=True,
+            fg="red",
+        )
+        private_key = input("Enter path to the committee private key file: ")
 
     file_in = open(shard, "rb")
 
