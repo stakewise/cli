@@ -72,6 +72,6 @@ def create_shard_pubkeys(shard: str, private_key: str) -> None:
 
     ipfs_hash = upload_public_keys_to_ipfs(public_keys)
     click.echo(
-        f"Please share the IPFS hash at https://forum.stakewise.io in the operator onboarding post:"
+        f'Please share the IPFS hash in "operators" Discord chat:'
         f" {click.style(ipfs_hash, fg='green')}",
     )
