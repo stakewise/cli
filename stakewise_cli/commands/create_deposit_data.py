@@ -3,9 +3,9 @@ from os.path import join
 
 import click
 
-from operator_cli.committee_shares import create_committee_shares
-from operator_cli.eth1 import generate_specification, validate_operator_address
-from operator_cli.eth2 import (
+from stakewise_cli.committee_shares import create_committee_shares
+from stakewise_cli.eth1 import generate_specification, validate_operator_address
+from stakewise_cli.eth2 import (
     LANGUAGES,
     VALIDATOR_DEPOSIT_AMOUNT,
     create_new_mnemonic,
@@ -13,9 +13,9 @@ from operator_cli.eth2 import (
     generate_unused_validator_keys,
     validate_mnemonic,
 )
-from operator_cli.ipfs import upload_deposit_data_to_ipfs
-from operator_cli.networks import GNOSIS_CHAIN, GOERLI, MAINNET, NETWORKS, PERM_GOERLI
-from operator_cli.queries import get_ethereum_gql_client, get_stakewise_gql_client
+from stakewise_cli.ipfs import upload_deposit_data_to_ipfs
+from stakewise_cli.networks import GNOSIS_CHAIN, GOERLI, MAINNET, NETWORKS, PERM_GOERLI
+from stakewise_cli.queries import get_ethereum_gql_client, get_stakewise_gql_client
 
 
 @click.command(help="Creates deposit data and generates a forum post specification")

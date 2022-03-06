@@ -5,15 +5,16 @@ import backoff
 import click
 import ipfshttpclient
 import requests
+from eth_typing import HexStr
 
-from operator_cli.settings import (
+from stakewise_cli.settings import (
     IPFS_FETCH_ENDPOINTS,
     IPFS_PIN_ENDPOINTS,
     IPFS_PINATA_API_KEY,
     IPFS_PINATA_PIN_ENDPOINT,
     IPFS_PINATA_SECRET_KEY,
 )
-from operator_cli.typings import MerkleDepositData
+from stakewise_cli.typings import MerkleDepositData
 
 
 def add_ipfs_prefix(ipfs_id: str) -> str:
@@ -60,7 +61,7 @@ def upload_deposit_data_to_ipfs(deposit_datum: List[MerkleDepositData]) -> str:
             click.echo("Failed to submit deposit data to Pinata")
 
     if not ipfs_ids:
-        raise click.ClickException("Failed to submit claims to IPFS")
+        raise click.ClickException("Failed to submit deposit data to IPFS")
 
     ipfs_ids = set(map(add_ipfs_prefix, ipfs_ids))
     if len(ipfs_ids) != 1:
@@ -70,6 +71,49 @@ def upload_deposit_data_to_ipfs(deposit_datum: List[MerkleDepositData]) -> str:
 
 
 @backoff.on_exception(backoff.expo, Exception, max_time=180)
+def upload_public_keys_to_ipfs(bls_public_keys: List[HexStr]) -> str:
+    """Submits BLS public keys to IPFS."""
+    ipfs_ids = []
+    for pin_endpoint in IPFS_PIN_ENDPOINTS:
+        try:
+            with ipfshttpclient.connect(pin_endpoint) as client:
+                ipfs_id = client.add_json(bls_public_keys)
+                client.pin.add(ipfs_id)
+                ipfs_ids.append(ipfs_id)
+        except Exception as e:
+            click.echo(e)
+            click.echo(f"Failed to submit public keys to {pin_endpoint}")
+
+    if IPFS_PINATA_API_KEY and IPFS_PINATA_SECRET_KEY:
+        headers = {
+            "pinata_api_key": IPFS_PINATA_API_KEY,
+            "pinata_secret_api_key": IPFS_PINATA_SECRET_KEY,
+            "Content-Type": "application/json",
+        }
+        try:
+            response = requests.post(
+                headers=headers,
+                url=IPFS_PINATA_PIN_ENDPOINT,
+                data=json.dumps({"pinataContent": bls_public_keys}, sort_keys=True),
+            )
+            response.raise_for_status()
+            ipfs_id = response.json()["IpfsHash"]
+            ipfs_ids.append(ipfs_id)
+        except Exception as e:  # noqa: E722
+            click.echo(e)
+            click.echo("Failed to submit public keys to Pinata")
+
+    if not ipfs_ids:
+        raise click.ClickException("Failed to submit public keys to IPFS")
+
+    ipfs_ids = set(map(add_ipfs_prefix, ipfs_ids))
+    if len(ipfs_ids) != 1:
+        raise click.ClickException(f"Received different ipfs IDs: {','.join(ipfs_ids)}")
+
+    return ipfs_ids.pop()
+
+
+@backoff.on_exception(backoff.expo, Exception, max_time=60)
 def ipfs_fetch(ipfs_id: str) -> Any:
     """Fetches data from IPFS."""
     ipfs_id = ipfs_id.replace("ipfs://", "").replace("/ipfs/", "")

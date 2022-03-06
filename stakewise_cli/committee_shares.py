@@ -8,13 +8,15 @@ from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.Cipher._mode_eax import EaxMode
 from Crypto.PublicKey import RSA
 from Crypto.Random import get_random_bytes
-from eth_typing import ChecksumAddress
+from eth_typing import BLSPubkey, ChecksumAddress
 from gql import Client
 from py_ecc.bls.ciphersuites import G2ProofOfPossession
-from py_ecc.optimized_bls12_381.optimized_curve import curve_order
+from py_ecc.bls.g2_primitives import G1_to_pubkey, pubkey_to_G1
+from py_ecc.optimized_bls12_381.optimized_curve import Z1, add, curve_order, multiply
+from py_ecc.utils import prime_field_inv
 
-from operator_cli.eth1 import get_operator_allocation_id, get_operators_committee
-from operator_cli.typings import BLSPrivkey, KeyPair
+from stakewise_cli.eth1 import get_operator_allocation_id, get_operators_committee
+from stakewise_cli.typings import BLSPrivkey, KeyPair
 
 PRIME = curve_order
 
@@ -126,7 +128,7 @@ def create_committee_shares(
                 secret = ",".join(str(share) for share in committee_final_shares[i][j])
                 rsa_pub_key = committee[i][j]
                 member_handler = rsa_pub_key.split(" ")[-1]
-                filename = f"{member_handler}-{allocation_name}.bin"
+                filename = f"{member_handler}-{allocation_name}.shard"
                 enc_session_key, nonce, tag, ciphertext = rsa_encrypt(
                     recipient_public_key=rsa_pub_key,
                     data=secret,
@@ -140,3 +142,21 @@ def create_committee_shares(
                 bar.update(1)
 
     return committee_paths
+
+
+def reconstruct_shared_bls_public_key(public_keys: Dict[int, BLSPubkey]) -> BLSPubkey:
+    """
+    Reconstructs shared BLS public key.
+    Copied from https://github.com/dankrad/python-ibft/blob/master/bls_threshold.py
+    """
+    r = Z1
+    for i, key in public_keys.items():
+        key_point = pubkey_to_G1(key)
+        coef = 1
+        for j in public_keys:
+            if j != i:
+                coef = (
+                    -coef * (j + 1) * prime_field_inv(i - j, curve_order) % curve_order
+                )
+        r = add(r, multiply(key_point, coef))
+    return G1_to_pubkey(r)

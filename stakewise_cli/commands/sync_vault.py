@@ -6,10 +6,10 @@ from hvac.exceptions import InvalidRequest
 from requests.exceptions import ConnectionError, HTTPError
 from web3 import Web3
 
-from operator_cli.eth2 import get_beacon_client, validate_mnemonic
-from operator_cli.networks import GNOSIS_CHAIN, GOERLI, MAINNET, NETWORKS, PERM_GOERLI
-from operator_cli.settings import VAULT_VALIDATORS_MOUNT_POINT
-from operator_cli.storages.vault import Vault
+from stakewise_cli.eth2 import get_beacon_client, validate_mnemonic
+from stakewise_cli.networks import GNOSIS_CHAIN, GOERLI, MAINNET, NETWORKS, PERM_GOERLI
+from stakewise_cli.settings import VAULT_VALIDATORS_MOUNT_POINT
+from stakewise_cli.storages.vault import Vault
 
 
 def get_vault_client() -> VaultClient:

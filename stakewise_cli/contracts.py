@@ -2,7 +2,7 @@ from web3 import Web3
 from web3.contract import Contract
 from web3.middleware import geth_poa_middleware
 
-from operator_cli.networks import NETWORKS
+from stakewise_cli.networks import NETWORKS
 
 
 def get_web3_client(network: str) -> Web3:

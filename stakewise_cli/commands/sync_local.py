@@ -6,9 +6,9 @@ from eth_utils import is_address, to_checksum_address
 from requests.exceptions import ConnectionError, HTTPError
 from web3 import Web3
 
-from operator_cli.eth2 import get_beacon_client, validate_mnemonic
-from operator_cli.networks import GNOSIS_CHAIN, GOERLI, MAINNET, NETWORKS, PERM_GOERLI
-from operator_cli.storages.local import LocalStorage
+from stakewise_cli.eth2 import get_beacon_client, validate_mnemonic
+from stakewise_cli.networks import GNOSIS_CHAIN, GOERLI, MAINNET, NETWORKS, PERM_GOERLI
+from stakewise_cli.storages.local import LocalStorage
 
 
 def validate_operator_address(ctx, param, value):
