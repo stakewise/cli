@@ -92,7 +92,7 @@ NETWORKS = {
             default="0x010000000000000000000000fc9b67b6034f6b306ea9bd8ec1baf3efa2490394",
         ),
         GENESIS_FORK_VERSION=bytes.fromhex("00000064"),
-        MAX_KEYS_PER_VALIDATOR=1000,
+        MAX_KEYS_PER_VALIDATOR=100,
         # MAINNET ENS record is used as ENS is not deployed to gnosis chain
         ETH1_ENDPOINT="",
         DAO_ENS_NAME="",
