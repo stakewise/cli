@@ -7,7 +7,8 @@ from typing import Dict, List, Tuple
 import backoff
 import click
 from eth_typing import BLSPubkey, BLSSignature, HexStr
-from gql import Client as GqlClient
+from eth_utils import add_0x_prefix
+from gql import Client
 from py_ecc.bls import G2ProofOfPossession
 from staking_deposit.key_handling.key_derivation.mnemonic import (
     get_mnemonic,
@@ -116,7 +117,7 @@ def create_new_mnemonic(mnemonic_language: str) -> str:
 
 
 def generate_unused_validator_keys(
-    gql_client: GqlClient, mnemonic: str, keys_count: int
+    gql_client: Client, mnemonic: str, keys_count: int
 ) -> List[KeyPair]:
     """Generates specified number of unused validator key-pairs from the mnemonic."""
     pub_key_to_priv_key: Dict[HexStr, BLSPrivkey] = {}
@@ -229,6 +230,24 @@ def get_deposit_data_signature(
     return signature, deposit_data.hash_tree_root
 
 
+def get_deposit_data_roots(
+    public_key: BLSPubkey,
+    withdrawal_credentials: Bytes32,
+    signature: BLSSignature,
+    amount: Gwei,
+    fork_version: Bytes4,
+) -> Tuple[Bytes32, Bytes32]:
+    """:returns deposit data hash tree root."""
+    deposit_message = DepositMessage(
+        pubkey=public_key, withdrawal_credentials=withdrawal_credentials, amount=amount
+    )
+    domain = compute_deposit_domain(fork_version=fork_version)
+    signing_root = compute_signing_root(deposit_message, domain)
+    deposit_data = SSZDepositData(**deposit_message.as_dict(), signature=signature)
+
+    return Bytes32(signing_root), deposit_data.hash_tree_root
+
+
 def verify_deposit_data(
     signature: BLSSignature,
     public_key: BLSPubkey,
@@ -309,3 +328,42 @@ def generate_merkle_deposit_datum(
     merkle_root: HexStr = merkle_tree.get_hex_root()
 
     return merkle_root, merkle_deposit_datum
+
+
+def check_public_keys_not_registered(
+    gql_client: Client, seen_public_keys: List[HexStr]
+) -> None:
+    keys_count = len(seen_public_keys)
+    verified_public_keys: List[HexStr] = []
+    with click.progressbar(
+        length=keys_count,
+        label="Verifying validators are not registered...\t\t",
+        show_percent=False,
+        show_pos=True,
+    ) as bar:
+        from_index = 0
+        while len(verified_public_keys) < keys_count:
+            curr_progress = len(verified_public_keys)
+            chunk_size = min(100, keys_count - curr_progress)
+
+            # verify keys in chunks
+            public_keys_chunk: List[HexStr] = []
+            while len(public_keys_chunk) != chunk_size:
+                public_key = add_0x_prefix(HexStr(seen_public_keys[from_index].lower()))
+                verified_public_keys.append(public_key)
+                public_keys_chunk.append(public_key)
+                from_index += 1
+
+            # check keys are not registered in beacon chain
+            result: Dict = gql_client.execute(
+                document=REGISTRATIONS_QUERY,
+                variable_values=dict(public_keys=public_keys_chunk),
+            )
+            registrations = result["validatorRegistrations"]
+            registered_keys = ",".join(r["publicKey"] for r in registrations)
+            if registered_keys:
+                raise click.ClickException(
+                    f"Public keys already registered in beacon chain: {registered_keys}"
+                )
+
+            bar.update(len(verified_public_keys) - curr_progress)

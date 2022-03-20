@@ -1,24 +1,18 @@
 import json
 from os import listdir
 from os.path import basename, isfile, join
-from typing import Dict, List, Set, Tuple
+from typing import List, Set, Tuple
 
 import click
 from eth_typing import BLSPubkey, BLSSignature, HexStr
-from eth_utils import add_0x_prefix
-from gql import Client
 from web3 import Web3
 
 from stakewise_cli.eth1 import generate_specification, validate_operator_address
-from stakewise_cli.eth2 import verify_deposit_data
+from stakewise_cli.eth2 import check_public_keys_not_registered, verify_deposit_data
 from stakewise_cli.ipfs import upload_deposit_data_to_ipfs
 from stakewise_cli.merkle_tree import MerkleTree
 from stakewise_cli.networks import GNOSIS_CHAIN, GOERLI, MAINNET, NETWORKS, PERM_GOERLI
-from stakewise_cli.queries import (
-    REGISTRATIONS_QUERY,
-    get_ethereum_gql_client,
-    get_stakewise_gql_client,
-)
+from stakewise_cli.queries import get_ethereum_gql_client, get_stakewise_gql_client
 from stakewise_cli.typings import Bytes4, Bytes32, Gwei, MerkleDepositData
 
 w3 = Web3()
@@ -111,45 +105,6 @@ def process_file(
                 )
                 merkle_nodes.append(merkle_node)
                 merkle_deposit_datum.append(merkle_deposit_data)
-
-
-def check_public_keys_not_registered(
-    gql_client: Client, seen_public_keys: List[HexStr]
-) -> None:
-    keys_count = len(seen_public_keys)
-    verified_public_keys: List[HexStr] = []
-    with click.progressbar(
-        length=keys_count,
-        label="Verifying validators are not registered...\t\t",
-        show_percent=False,
-        show_pos=True,
-    ) as bar:
-        from_index = 0
-        while len(verified_public_keys) < keys_count:
-            curr_progress = len(verified_public_keys)
-            chunk_size = min(100, keys_count - curr_progress)
-
-            # verify keys in chunks
-            public_keys_chunk: List[HexStr] = []
-            while len(public_keys_chunk) != chunk_size:
-                public_key = add_0x_prefix(HexStr(seen_public_keys[from_index].lower()))
-                verified_public_keys.append(public_key)
-                public_keys_chunk.append(public_key)
-                from_index += 1
-
-            # check keys are not registered in beacon chain
-            result: Dict = gql_client.execute(
-                document=REGISTRATIONS_QUERY,
-                variable_values=dict(public_keys=public_keys_chunk),
-            )
-            registrations = result["validatorRegistrations"]
-            registered_keys = ",".join(r["publicKey"] for r in registrations)
-            if registered_keys:
-                raise click.ClickException(
-                    f"Public keys already registered in beacon chain: {registered_keys}"
-                )
-
-            bar.update(len(verified_public_keys) - curr_progress)
 
 
 @click.command(
