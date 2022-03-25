@@ -74,7 +74,7 @@ def get_operators_committee(network: str) -> List[List[str]]:
 
     # TODO: remove once committee approved by DAO to mainnet ENS record
     if network == MAINNET:
-        committee_config_url = "ipfs://QmcxbqLSC1NvjfCDPGMP93R2zRdrUMH9Ge5pFarDtM53iM"
+        committee_config_url = "ipfs://QmVp3QMpKCrnSwACzWVJbNrVQYAZSRwoNNWh7c4XcHb1St"
     else:
         committee_config_url = ens_resolver.functions.text(
             node_id, ens_text_record
