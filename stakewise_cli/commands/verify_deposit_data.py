@@ -5,11 +5,10 @@ from eth_typing import BLSPubkey, BLSSignature, HexStr
 from py_ecc.bls import G2ProofOfPossession
 from web3 import Web3
 
-from stakewise_cli.eth2 import check_public_keys_not_registered, get_deposit_data_roots
+from stakewise_cli.eth2 import get_deposit_data_roots
 from stakewise_cli.ipfs import ipfs_fetch
 from stakewise_cli.merkle_tree import MerkleTree
 from stakewise_cli.networks import GNOSIS_CHAIN, GOERLI, MAINNET, NETWORKS, PERM_GOERLI
-from stakewise_cli.queries import get_ethereum_gql_client
 from stakewise_cli.typings import Bytes32, Gwei
 
 w3 = Web3()
@@ -38,7 +37,14 @@ deposit_amount_gwei = Gwei(int(w3.fromWei(deposit_amount, "gwei")))
     help="The expected merkle root of the deposit data",
     prompt="Enter the expected merkle root of the deposit data",
 )
-def verify_deposit_data(network: str, ipfs_hash: str, merkle_root: HexStr) -> None:
+@click.option(
+    "--keys-count",
+    help="The expected number of keys",
+    prompt="Enter the expected number of keys in deposit data",
+)
+def verify_deposit_data(
+    network: str, ipfs_hash: str, merkle_root: HexStr, keys_count: int
+) -> None:
     withdrawal_credentials = Bytes32(
         Web3.toBytes(hexstr=NETWORKS[network]["WITHDRAWAL_CREDENTIALS"])
     )
@@ -89,12 +95,6 @@ def verify_deposit_data(network: str, ipfs_hash: str, merkle_root: HexStr) -> No
             )
             merkle_nodes.append(w3.keccak(primitive=encoded_data))
 
-    # check whether public keys are not registered in beacon chain
-    check_public_keys_not_registered(
-        gql_client=get_ethereum_gql_client(network),
-        seen_public_keys=list(seen_public_keys),
-    )
-
     # check proofs
     merkle_tree = MerkleTree(merkle_nodes)
     for i, deposit_data in enumerate(deposit_datum):
@@ -109,6 +109,11 @@ def verify_deposit_data(network: str, ipfs_hash: str, merkle_root: HexStr) -> No
             f"Merkle roots does not match:"
             f" expected={merkle_root},"
             f" actual={merkle_tree.get_hex_root()}"
+        )
+
+    if keys_count != len(seen_public_keys):
+        raise click.ClickException(
+            f"Invalid number of keys: expected={keys_count}, actual={len(seen_public_keys)}"
         )
 
     click.secho(

@@ -117,6 +117,7 @@ def create_committee_shares(
 
     committee_paths = {}
     members_count = sum([len(committee[i]) for i in range(len(committee))])
+    formatted_network = network.replace("_", "-").lower()
     with click.progressbar(
         length=members_count,
         label="Creating validator key shares\t\t",
@@ -128,7 +129,9 @@ def create_committee_shares(
                 secret = ",".join(str(share) for share in committee_final_shares[i][j])
                 rsa_pub_key = committee[i][j]
                 member_handler = rsa_pub_key.split(" ")[-1]
-                filename = f"{member_handler}-{allocation_name}.shard"
+                filename = (
+                    f"{member_handler}-{allocation_name}-{formatted_network}.shard"
+                )
                 enc_session_key, nonce, tag, ciphertext = rsa_encrypt(
                     recipient_public_key=rsa_pub_key,
                     data=secret,
