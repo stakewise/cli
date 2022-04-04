@@ -8,7 +8,7 @@ from eth_typing import BLSPubkey, BLSSignature, HexStr
 from web3 import Web3
 
 from stakewise_cli.eth1 import generate_specification, validate_operator_address
-from stakewise_cli.eth2 import check_public_keys_not_registered, verify_deposit_data
+from stakewise_cli.eth2 import get_registered_public_keys, verify_deposit_data
 from stakewise_cli.ipfs import upload_deposit_data_to_ipfs
 from stakewise_cli.merkle_tree import MerkleTree
 from stakewise_cli.networks import GNOSIS_CHAIN, GOERLI, MAINNET, NETWORKS, PERM_GOERLI
@@ -164,10 +164,22 @@ def upload_deposit_data(network: str, path: str) -> None:
     merkle_tree = MerkleTree(merkle_nodes)
 
     # check whether public keys are not registered in beacon chain
-    check_public_keys_not_registered(
+    registered_pub_keys = get_registered_public_keys(
         gql_client=get_ethereum_gql_client(network),
         seen_public_keys=list(seen_public_keys),
     )
+
+    if len(registered_pub_keys) == len(seen_public_keys):
+        raise click.ClickException(
+            "All the deposit data public keys are already registered"
+        )
+    elif registered_pub_keys:
+        click.secho(
+            f"The deposit data has {len(registered_pub_keys)} out of {len(seen_public_keys)}"
+            f" public keys already registered",
+            bold=True,
+            fg="blue",
+        )
 
     # collect proofs
     for i, merkle_deposit_data in enumerate(merkle_deposit_datum):

@@ -13,24 +13,24 @@ web3 = "==5.28.0"
 py-ecc = "==5.2.0"
 staking-deposit = {git = "https://github.com/ethereum/eth2.0-deposit-cli", rev = "v2.0.0"}
 hvac = {version = "==0.11.2", extras = ["parser"]}
-gql = {version = "==3.0.0", allow-prereleases = true, extras = ["aiohttp"]}
+gql = {version = "==3.1.0", extras = ["aiohttp"]}
 backoff = "==1.11.1"
 aiohttp = {version = "==3.8.1", extras = ["speedups"]}
 ssz = "==0.2.4"
-click = "==8.0.3"
+click = "==8.1.2"
 requests-toolbelt = "==0.9.1"
 colorama = "==0.4.4"
 pycryptodome = "==3.14.1"
 
 [tool.poetry.dev-dependencies]
-mypy = "==0.931"
-black = "==22.1.0"
+mypy = "==0.942"
+black = "==22.3.0"
 flake8 = "==4.0.1"
 isort = "==5.10.1"
-flake8-black = "==0.2.4"
-flake8-bugbear = "==22.1.11"
-pre-commit = "==2.17.0"
-pyinstaller = "==4.9"
+flake8-black = "==0.3.2"
+flake8-bugbear = "==22.3.23"
+pre-commit = "==2.18.1"
+pyinstaller = "==4.10"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
