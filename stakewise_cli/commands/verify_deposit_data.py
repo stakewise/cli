@@ -5,10 +5,11 @@ from eth_typing import BLSPubkey, BLSSignature, HexStr
 from py_ecc.bls import G2ProofOfPossession
 from web3 import Web3
 
-from stakewise_cli.eth2 import get_deposit_data_roots
+from stakewise_cli.eth2 import get_deposit_data_roots, get_registered_public_keys
 from stakewise_cli.ipfs import ipfs_fetch
 from stakewise_cli.merkle_tree import MerkleTree
 from stakewise_cli.networks import GNOSIS_CHAIN, GOERLI, MAINNET, NETWORKS, PERM_GOERLI
+from stakewise_cli.queries import get_ethereum_gql_client
 from stakewise_cli.typings import Bytes32, Gwei
 
 w3 = Web3()
@@ -41,6 +42,7 @@ deposit_amount_gwei = Gwei(int(w3.fromWei(deposit_amount, "gwei")))
     "--keys-count",
     help="The expected number of keys",
     prompt="Enter the expected number of keys in deposit data",
+    type=int,
 )
 def verify_deposit_data(
     network: str, ipfs_hash: str, merkle_root: HexStr, keys_count: int
@@ -94,6 +96,24 @@ def verify_deposit_data(
                 [public_key, withdrawal_credentials, signature, deposit_data_root],
             )
             merkle_nodes.append(w3.keccak(primitive=encoded_data))
+
+    # check registered public keys in beacon chain
+    registered_pub_keys = get_registered_public_keys(
+        gql_client=get_ethereum_gql_client(network),
+        seen_public_keys=list(seen_public_keys),
+    )
+
+    if len(registered_pub_keys) == len(seen_public_keys):
+        raise click.ClickException(
+            "All the deposit data public keys are already registered"
+        )
+    elif registered_pub_keys:
+        click.secho(
+            f"The deposit data has {len(registered_pub_keys)} out of {len(seen_public_keys)}"
+            f" public keys already registered",
+            bold=True,
+            fg="blue",
+        )
 
     # check proofs
     merkle_tree = MerkleTree(merkle_nodes)

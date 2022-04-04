@@ -2,7 +2,7 @@ import os
 import secrets
 import string
 from enum import Enum
-from typing import Dict, List, Tuple
+from typing import Dict, List, Set, Tuple
 
 import backoff
 import click
@@ -330,11 +330,12 @@ def generate_merkle_deposit_datum(
     return merkle_root, merkle_deposit_datum
 
 
-def check_public_keys_not_registered(
+def get_registered_public_keys(
     gql_client: Client, seen_public_keys: List[HexStr]
-) -> None:
+) -> Set[HexStr]:
     keys_count = len(seen_public_keys)
     verified_public_keys: List[HexStr] = []
+    registered_public_keys: Set[HexStr] = set()
     with click.progressbar(
         length=keys_count,
         label="Verifying validators are not registered...\t\t",
@@ -360,10 +361,9 @@ def check_public_keys_not_registered(
                 variable_values=dict(public_keys=public_keys_chunk),
             )
             registrations = result["validatorRegistrations"]
-            registered_keys = ",".join(r["publicKey"] for r in registrations)
-            if registered_keys:
-                raise click.ClickException(
-                    f"Public keys already registered in beacon chain: {registered_keys}"
-                )
+            for registration in registrations:
+                registered_public_keys.add(registration["publicKey"])
 
             bar.update(len(verified_public_keys) - curr_progress)
+
+    return registered_public_keys
