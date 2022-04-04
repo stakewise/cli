@@ -178,7 +178,7 @@ def upload_deposit_data(network: str, path: str) -> None:
             f"The deposit data has {len(registered_pub_keys)} out of {len(seen_public_keys)}"
             f" public keys already registered",
             bold=True,
-            fg="orange",
+            fg="blue",
         )
 
     # collect proofs
