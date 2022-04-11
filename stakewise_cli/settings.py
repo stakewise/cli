@@ -21,3 +21,5 @@ IPFS_PINATA_SECRET_KEY = config(
 VAULT_VALIDATORS_MOUNT_POINT = config(
     "VAULT_VALIDATORS_MOUNT_POINT", default="validators"
 )
+
+IS_LEGACY = config("IS_LEGACY", default=False, cast=bool)

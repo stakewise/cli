@@ -20,15 +20,17 @@ from stakewise_cli.eth1 import (
     is_validator_registered,
 )
 from stakewise_cli.eth2 import (
+    COIN_TYPE,
     EXITED_STATUSES,
+    PURPOSE,
     generate_password,
     get_mnemonic_signing_key,
     get_validators,
 )
 from stakewise_cli.ipfs import ipfs_fetch
 from stakewise_cli.networks import NETWORKS
-from stakewise_cli.queries import get_stakewise_gql_client
-from stakewise_cli.settings import VAULT_VALIDATORS_MOUNT_POINT
+from stakewise_cli.queries import get_ethereum_gql_client, get_stakewise_gql_client
+from stakewise_cli.settings import IS_LEGACY, VAULT_VALIDATORS_MOUNT_POINT
 from stakewise_cli.typings import SigningKey, VaultKeystore, VaultState
 
 VALIDATOR_POLICY = """
@@ -62,6 +64,7 @@ class Vault(object):
         self.vault_client = vault_client
         self.network = network
         self.sw_gql_client = get_stakewise_gql_client(network)
+        self.eth_gql_client = get_ethereum_gql_client(network)
         self.beacon = beacon
         self.mnemonic = mnemonic
         self.namespace = namespace
@@ -150,7 +153,7 @@ class Vault(object):
 
         from_index = 0
         while True:
-            signing_key = get_mnemonic_signing_key(self.mnemonic, from_index)
+            signing_key = get_mnemonic_signing_key(self.mnemonic, from_index, IS_LEGACY)
             public_key = Web3.toHex(G2ProofOfPossession.SkToPk(signing_key.key))
 
             if public_key in self.vault_current_state:
@@ -163,7 +166,7 @@ class Vault(object):
                 continue
 
             is_registered = is_validator_registered(
-                gql_client=self.sw_gql_client, public_key=public_key
+                gql_client=self.eth_gql_client, public_key=public_key
             )
             if is_registered:
                 missed_keypairs[public_key] = signing_key
@@ -373,6 +376,10 @@ class Vault(object):
             keystore = vault_keystore["keystore"]
             keystore_path = json.loads(keystore)["path"]
 
+            if not keystore_path.endswith("/0/0"):
+                index = keystore_path.split("/")[-1]
+                keystore_path = f"m/{PURPOSE}/{COIN_TYPE}/{index}/0/0"
+
             # generate unique keystore name
             keystore_name = "keystore-%s-%i.json" % (
                 keystore_path.replace("/", "_"),
@@ -452,10 +459,13 @@ class Vault(object):
         vault_keystore = self.vault_current_state[public_key1]
         keystore = ScryptKeystore.from_json(json.loads(vault_keystore["keystore"]))
 
-        from_index = int(keystore.path.split("/")[3])
+        if not keystore.path.endswith("/0/0"):
+            from_index = keystore.path.split("/")[-1]
+        else:
+            from_index = int(keystore.path.split("/")[3])
 
         signing_key = get_mnemonic_signing_key(
-            mnemonic=self.mnemonic, from_index=from_index
+            mnemonic=self.mnemonic, from_index=from_index, is_legacy=IS_LEGACY
         )
         public_key2 = Web3.toHex(G2ProofOfPossession.SkToPk(signing_key.key))
 
