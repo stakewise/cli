@@ -33,6 +33,7 @@ from web3.types import Wei
 
 from stakewise_cli.merkle_tree import MerkleTree
 from stakewise_cli.queries import REGISTRATIONS_QUERY
+from stakewise_cli.settings import IS_LEGACY
 from stakewise_cli.typings import (
     BLSPrivkey,
     Bytes4,
@@ -136,7 +137,7 @@ def generate_unused_validator_keys(
             public_keys_chunk: List[HexStr] = []
             while len(public_keys_chunk) != chunk_size:
                 # derive signing key
-                signing_key = get_mnemonic_signing_key(mnemonic, from_index)
+                signing_key = get_mnemonic_signing_key(mnemonic, from_index, IS_LEGACY)
 
                 # derive public key
                 public_key = w3.toHex(G2ProofOfPossession.SkToPk(signing_key.key))
@@ -155,7 +156,7 @@ def generate_unused_validator_keys(
             )
             registrations = result["validatorRegistrations"]
             for registration in registrations:
-                del pub_key_to_priv_key[registration["publicKey"]]
+                pub_key_to_priv_key.pop(registration["publicKey"], None)
 
             bar.update(len(pub_key_to_priv_key) - curr_progress)
 
@@ -165,13 +166,19 @@ def generate_unused_validator_keys(
     ]
 
 
-def get_mnemonic_signing_key(mnemonic: str, from_index: int) -> SigningKey:
+def get_mnemonic_signing_key(
+    mnemonic: str, from_index: int, is_legacy: bool = False
+) -> SigningKey:
     """Returns the signing key of the mnemonic at a specific index."""
     seed = get_seed(mnemonic=mnemonic, password="")
     private_key = BLSPrivkey(derive_master_SK(seed))
     signing_key_path = f"m/{PURPOSE}/{COIN_TYPE}/{from_index}/0/0"
+    if is_legacy:
+        nodes = path_to_nodes(f"m/{PURPOSE}/{COIN_TYPE}/0/0/{from_index}")
+    else:
+        nodes = path_to_nodes(signing_key_path)
 
-    for node in path_to_nodes(signing_key_path):
+    for node in nodes:
         private_key = BLSPrivkey(derive_child_SK(parent_SK=private_key, index=node))
 
     return SigningKey(key=private_key, path=signing_key_path)

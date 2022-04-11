@@ -17,7 +17,8 @@ from stakewise_cli.eth1 import (
 )
 from stakewise_cli.eth2 import generate_password, get_mnemonic_signing_key
 from stakewise_cli.ipfs import ipfs_fetch
-from stakewise_cli.queries import get_stakewise_gql_client
+from stakewise_cli.queries import get_ethereum_gql_client, get_stakewise_gql_client
+from stakewise_cli.settings import IS_LEGACY
 
 
 class LocalStorage(object):
@@ -29,6 +30,7 @@ class LocalStorage(object):
         mnemonic: str,
     ):
         self.dst_folder = dst_folder
+        self.eth_gql_client = get_ethereum_gql_client(network)
         self.sw_gql_client = get_stakewise_gql_client(network)
         self.mnemonic = mnemonic
         self.operator_address = operator
@@ -73,13 +75,15 @@ class LocalStorage(object):
             show_pos=True,
         ) as bar:
             while True:
-                signing_key = get_mnemonic_signing_key(self.mnemonic, from_index)
+                signing_key = get_mnemonic_signing_key(
+                    self.mnemonic, from_index, IS_LEGACY
+                )
                 public_key = Web3.toHex(G2ProofOfPossession.SkToPk(signing_key.key))
                 if public_key not in self.operator_deposit_data_public_keys:
                     break
 
                 is_registered = is_validator_registered(
-                    gql_client=self.sw_gql_client, public_key=public_key
+                    gql_client=self.eth_gql_client, public_key=public_key
                 )
                 if is_registered:
                     click.secho(

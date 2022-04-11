@@ -10,7 +10,7 @@ from web3 import Web3
 from stakewise_cli.contracts import get_ens_node_id, get_ens_resolver, get_web3_client
 from stakewise_cli.ipfs import ipfs_fetch
 from stakewise_cli.networks import GNOSIS_CHAIN, MAINNET, NETWORKS
-from stakewise_cli.queries import OPERATOR_QUERY, VALIDATORS_QUERY
+from stakewise_cli.queries import OPERATOR_QUERY, REGISTRATIONS_QUERY, VALIDATORS_QUERY
 
 
 @backoff.on_exception(backoff.expo, Exception, max_time=180)
@@ -119,10 +119,10 @@ def validate_share_percentage(value) -> int:
 def is_validator_registered(gql_client: GqlClient, public_key: HexStr) -> bool:
     """Checks whether validator is registered."""
     result: Dict = gql_client.execute(
-        document=VALIDATORS_QUERY,
-        variable_values=dict(public_key=public_key),
+        document=REGISTRATIONS_QUERY,
+        variable_values=dict(public_keys=[public_key]),
     )
-    validators = result["validators"]
+    validators = result["validatorRegistrations"]
     return bool(validators)
 
 
