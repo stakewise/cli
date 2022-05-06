@@ -5,6 +5,9 @@ import click
 warnings.filterwarnings("ignore")
 
 from stakewise_cli.commands.create_deposit_data import create_deposit_data  # noqa: E402
+from stakewise_cli.commands.create_referrals_proposal import (  # noqa: E402
+    create_referrals_proposal,
+)
 from stakewise_cli.commands.create_shard_pubkeys import (  # noqa: E402
     create_shard_pubkeys,
 )
@@ -25,6 +28,7 @@ def cli() -> None:
 
 
 cli.add_command(create_deposit_data)
+cli.add_command(create_referrals_proposal)
 cli.add_command(upload_deposit_data)
 cli.add_command(verify_deposit_data)
 cli.add_command(sync_vault)

@@ -61,3 +61,26 @@ VALIDATORS_QUERY = gql(
     }
 """
 )
+
+REFERRALS_QUERY = gql(
+    """
+        query getReferrers($from_block: BigInt, $to_block: BigInt, $last_id: ID) {
+          referrals(
+            where: {
+             createdAtBlock_gt: $from_block
+             createdAtBlock_lt: $to_block
+             id_gt: $last_id,
+             }
+             first: 1000
+             orderBy: id
+             orderDirection: asc
+          ) {
+            id
+            referrer
+            amount
+            createdAtBlock
+            createdAtTimestamp
+          }
+        }
+    """
+)

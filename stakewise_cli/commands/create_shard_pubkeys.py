@@ -4,7 +4,7 @@ from Crypto.PublicKey import RSA
 from py_ecc.bls import G2ProofOfPossession
 from web3 import Web3
 
-from stakewise_cli.ipfs import upload_public_keys_to_ipfs
+from stakewise_cli.ipfs import upload_to_ipfs
 
 
 def validate_private_key(ctx, param, value) -> str:
@@ -70,7 +70,7 @@ def create_shard_pubkeys(shard: str, private_key: str) -> None:
         for priv_key in _private_keys:
             public_keys.append(Web3.toHex(G2ProofOfPossession.SkToPk(int(priv_key))))
 
-    ipfs_hash = upload_public_keys_to_ipfs(public_keys)
+    ipfs_hash = upload_to_ipfs(public_keys)
     click.echo(
         f'Please share the IPFS hash in "operators" Discord chat:'
         f" {click.style(ipfs_hash, fg='green')}",
