@@ -67,8 +67,8 @@ REFERRALS_QUERY = gql(
         query getReferrers($from_block: BigInt, $to_block: BigInt, $last_id: ID) {
           referrals(
             where: {
-             createdAtBlock_gt: $from_block
-             createdAtBlock_lt: $to_block
+             createdAtBlock_gte: $from_block
+             createdAtBlock_lte: $to_block
              id_gt: $last_id,
              }
              first: 1000
@@ -78,8 +78,6 @@ REFERRALS_QUERY = gql(
             id
             referrer
             amount
-            createdAtBlock
-            createdAtTimestamp
           }
         }
     """

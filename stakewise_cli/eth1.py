@@ -64,7 +64,7 @@ def get_validator_operator_address(
 
 
 @backoff.on_exception(backoff.expo, Exception, max_time=30)
-def get_referrals_fee(
+def get_referrals(
     gql_client: GqlClient, from_block: int, to_block: int
 ) -> Dict[ChecksumAddress, int]:
     """Fetches referrals fee from graph"""
