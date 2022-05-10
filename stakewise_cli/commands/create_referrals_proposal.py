@@ -3,8 +3,8 @@ import decimal
 import click
 from web3 import Web3
 
-from stakewise_cli.coinbase import get_coinbase_price
-from stakewise_cli.eth1 import get_referrals
+from stakewise_cli.coingecko import get_average_range_price
+from stakewise_cli.eth1 import get_referrals, get_web3_client
 from stakewise_cli.ipfs import upload_to_ipfs
 from stakewise_cli.networks import GNOSIS_CHAIN, GOERLI, MAINNET, NETWORKS, PERM_GOERLI
 from stakewise_cli.proposals import generate_referrals_swise_specification
@@ -46,13 +46,19 @@ w3 = Web3()
 )
 @click.option(
     "--swise-price",
-    help="SWISE price in USD",
+    help="Average SWISE price in USD for the period",
     type=decimal.Decimal,
 )
 @click.option(
     "--eth-price",
-    help="ETH price in USD",
+    help="Average ETH price in USD for the period",
     type=decimal.Decimal,
+)
+@click.option(
+    "--whitelist-path",
+    help="The file path from where to read whitelisted accounts",
+    prompt="Enter the file path from where to read whitelisted accounts. One address per line",
+    type=click.Path(exists=True, file_okay=True, dir_okay=False),
 )
 def create_referrals_proposal(
     network: str,
@@ -61,17 +67,36 @@ def create_referrals_proposal(
     referrals_share: decimal.Decimal,
     swise_price: decimal.Decimal,
     eth_price: decimal.Decimal,
+    whitelist_path: str,
 ) -> None:
+    w3 = get_web3_client(network)
+    from_date = w3.eth.getBlock(from_block).timestamp
+    to_date = w3.eth.getBlock(to_block).timestamp
+
+    # check whitelists
+    whitelisted_addresses = []
+    with open(whitelist_path, "r") as f:
+        for line in f:
+            address = line.strip()
+            if not w3.isAddress(address):
+                click.secho(
+                    f"Invalid address '{address}'",
+                    bold=True,
+                    fg="red",
+                )
+                return
+            whitelisted_addresses.append(address)
+
     if not swise_price:
         swise_price = click.prompt(
             "Enter SWISE price (USD)",
-            default=get_coinbase_price("swise"),
+            default=get_average_range_price("stakewise", from_date, to_date),
             type=decimal.Decimal,
         )
     if not eth_price:
         eth_price = click.prompt(
             "Enter ETH price (USD)",
-            default=get_coinbase_price("eth"),
+            default=get_average_range_price("ethereum", from_date, to_date),
             type=decimal.Decimal,
         )
     # 1. Query referrals fee
@@ -83,14 +108,21 @@ def create_referrals_proposal(
     referrals = {}
     total_amount = 0
     for item in referrals_data:
+        referrer = Web3.toChecksumAddress(item["referrer"])
+        if referrer not in whitelisted_addresses:
+            continue
+
         amount = round(
             (eth_price / swise_price) * (referrals_share / 100) * int(item["amount"])
         )
-
         total_amount += amount
-        referrer = Web3.toChecksumAddress(item["referrer"])
         referrals.setdefault(referrer, {}).setdefault(token_address, 0)
         referrals[referrer][token_address] += amount
+
+    if not referrals:
+        click.echo("Empty referrals specification. Exiting...")
+        return
+
     # 2. Upload referrals data to IPFS
     ipfs_url = upload_to_ipfs(referrals)
 
