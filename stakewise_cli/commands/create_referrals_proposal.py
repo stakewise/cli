@@ -29,12 +29,14 @@ w3 = Web3()
     "--from-block",
     required=True,
     help="The block number to start collecting referrals from",
+    prompt="Enter the block number to start collecting referrals from",
     type=int,
 )
 @click.option(
     "--to-block",
     required=True,
     help="The block number to collect referrals up to",
+    prompt="Enter the block number to collect referrals up to",
     type=int,
 )
 @click.option(
