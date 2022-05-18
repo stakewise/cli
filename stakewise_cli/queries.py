@@ -62,6 +62,16 @@ VALIDATORS_QUERY = gql(
 """
 )
 
+BLOCK_TIMESTAMP_QUERY = gql(
+    """
+    query getBlockTimestamp($block_number: ID) {
+      blocks(where: { id: $block_number }) {
+          timestamp
+      }
+    }
+"""
+)
+
 REFERRALS_QUERY = gql(
     """
         query getReferrers($from_block: BigInt, $to_block: BigInt, $last_id: ID) {

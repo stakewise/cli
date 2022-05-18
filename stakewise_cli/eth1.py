@@ -11,6 +11,7 @@ from stakewise_cli.contracts import get_ens_node_id, get_ens_resolver, get_web3_
 from stakewise_cli.ipfs import ipfs_fetch
 from stakewise_cli.networks import GNOSIS_CHAIN, MAINNET, NETWORKS
 from stakewise_cli.queries import (
+    BLOCK_TIMESTAMP_QUERY,
     OPERATOR_QUERY,
     REFERRALS_QUERY,
     REGISTRATIONS_QUERY,
@@ -157,6 +158,20 @@ def is_validator_registered(gql_client: GqlClient, public_key: HexStr) -> bool:
     )
     validators = result["validatorRegistrations"]
     return bool(validators)
+
+
+@backoff.on_exception(backoff.expo, Exception, max_time=1)
+def get_block_timestamp(gql_client: GqlClient, block_number: int) -> bool:
+    """Checks whether validator is registered."""
+    result: Dict = gql_client.execute(
+        document=BLOCK_TIMESTAMP_QUERY,
+        variable_values=dict(block_number=block_number),
+    )
+    blocks = result["blocks"]
+    if not blocks:
+        return
+
+    return int(blocks[0]["timestamp"])
 
 
 def validate_operator_address(value):

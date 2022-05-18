@@ -4,11 +4,11 @@ import click
 from web3 import Web3
 
 from stakewise_cli.coingecko import get_average_range_price
-from stakewise_cli.eth1 import get_referrals, get_web3_client
+from stakewise_cli.eth1 import get_block_timestamp, get_referrals, get_web3_client
 from stakewise_cli.ipfs import upload_to_ipfs
 from stakewise_cli.networks import GNOSIS_CHAIN, GOERLI, MAINNET, NETWORKS, PERM_GOERLI
 from stakewise_cli.proposals import generate_referrals_swise_specification
-from stakewise_cli.queries import get_stakewise_gql_client
+from stakewise_cli.queries import get_ethereum_gql_client, get_stakewise_gql_client
 
 w3 = Web3()
 
@@ -71,9 +71,26 @@ def create_referrals_proposal(
     eth_price: decimal.Decimal,
     whitelist_path: str,
 ) -> None:
+    if not from_block < to_block:
+        click.echo(
+            "The block number to start should be more the block number to collect referrals up to"
+        )
+        return
+
     w3 = get_web3_client(network)
-    from_date = w3.eth.getBlock(from_block).timestamp
-    to_date = w3.eth.getBlock(to_block).timestamp
+
+    ethereum_gql_client = get_ethereum_gql_client(network)
+    from_date = get_block_timestamp(
+        gql_client=ethereum_gql_client, block_number=from_block
+    )
+    to_date = get_block_timestamp(gql_client=ethereum_gql_client, block_number=to_block)
+
+    if not from_date:
+        click.echo("Invalid block number to start collecting referrals from")
+        return
+    if not to_date:
+        click.echo("Invalid block number to collect referrals up to")
+        return
 
     # check whitelists
     whitelisted_addresses = []
@@ -87,7 +104,7 @@ def create_referrals_proposal(
                     fg="red",
                 )
                 return
-            whitelisted_addresses.append(address)
+            whitelisted_addresses.append(Web3.toChecksumAddress(address))
 
     if not swise_price:
         swise_price = click.prompt(
@@ -122,7 +139,7 @@ def create_referrals_proposal(
         referrals[referrer][token_address] += amount
 
     if not referrals:
-        click.echo("Empty referrals specification. Exiting...")
+        click.echo("No referrals for the specified period. Exiting...")
         return
 
     # 2. Upload referrals data to IPFS
