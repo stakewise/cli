@@ -72,10 +72,9 @@ def create_referrals_proposal(
     whitelist_path: str,
 ) -> None:
     if not from_block < to_block:
-        click.echo(
+        raise click.ClickException(
             "The block number to start should be more the block number to collect referrals up to"
         )
-        return
 
     w3 = get_web3_client(network)
 
@@ -86,11 +85,11 @@ def create_referrals_proposal(
     to_date = get_block_timestamp(gql_client=ethereum_gql_client, block_number=to_block)
 
     if not from_date:
-        click.echo("Invalid block number to start collecting referrals from")
-        return
+        raise click.ClickException(
+            "Invalid block number to start collecting referrals from"
+        )
     if not to_date:
-        click.echo("Invalid block number to collect referrals up to")
-        return
+        raise click.ClickException("Invalid block number to collect referrals up to")
 
     # check whitelists
     whitelisted_addresses = []
@@ -98,12 +97,7 @@ def create_referrals_proposal(
         for line in f:
             address = line.strip()
             if not w3.isAddress(address):
-                click.secho(
-                    f"Invalid address '{address}'",
-                    bold=True,
-                    fg="red",
-                )
-                return
+                raise click.ClickException(f"Invalid address '{address}'")
             whitelisted_addresses.append(Web3.toChecksumAddress(address))
 
     if not swise_price:
@@ -131,16 +125,15 @@ def create_referrals_proposal(
         if referrer not in whitelisted_addresses:
             continue
 
-        amount = round(
-            (eth_price / swise_price) * (referrals_share / 100) * int(item["amount"])
+        amount = int(
+            (int(item["amount"]) * eth_price * referrals_share) / (100 * swise_price)
         )
         total_amount += amount
         referrals.setdefault(referrer, {}).setdefault(token_address, 0)
         referrals[referrer][token_address] += amount
 
     if not referrals:
-        click.echo("No referrals for the specified period. Exiting...")
-        return
+        raise click.ClickException("No referrals for the specified period. Exiting...")
 
     # 2. Upload referrals data to IPFS
     ipfs_url = upload_to_ipfs(referrals)

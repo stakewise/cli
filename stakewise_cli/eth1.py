@@ -161,8 +161,8 @@ def is_validator_registered(gql_client: GqlClient, public_key: HexStr) -> bool:
 
 
 @backoff.on_exception(backoff.expo, Exception, max_time=1)
-def get_block_timestamp(gql_client: GqlClient, block_number: int) -> bool:
-    """Checks whether validator is registered."""
+def get_block_timestamp(gql_client: GqlClient, block_number: int) -> Union[int, None]:
+    """Get block timestamp."""
     result: Dict = gql_client.execute(
         document=BLOCK_TIMESTAMP_QUERY,
         variable_values=dict(block_number=block_number),
