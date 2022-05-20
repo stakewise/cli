@@ -14,7 +14,14 @@ from stakewise_cli.eth2 import (
     validate_mnemonic,
 )
 from stakewise_cli.ipfs import upload_deposit_data_to_ipfs
-from stakewise_cli.networks import GNOSIS_CHAIN, GOERLI, MAINNET, NETWORKS, PERM_GOERLI
+from stakewise_cli.networks import (
+    GNOSIS_CHAIN,
+    GOERLI,
+    HARBOUR_GOERLI,
+    HARBOUR_MAINNET,
+    MAINNET,
+    NETWORKS,
+)
 from stakewise_cli.queries import get_ethereum_gql_client, get_stakewise_gql_client
 
 
@@ -25,7 +32,8 @@ from stakewise_cli.queries import get_ethereum_gql_client, get_stakewise_gql_cli
     help="The network to generate the deposit data for",
     prompt="Enter the network name",
     type=click.Choice(
-        [MAINNET, GOERLI, PERM_GOERLI, GNOSIS_CHAIN], case_sensitive=False
+        [MAINNET, GOERLI, HARBOUR_MAINNET, HARBOUR_GOERLI, GNOSIS_CHAIN],
+        case_sensitive=False,
     ),
 )
 @click.option(
@@ -85,8 +93,8 @@ def create_deposit_data(
 
     # 4. Generate private key shares for the committee
     sw_gql_client = get_stakewise_gql_client(network)
-    if network != PERM_GOERLI:
-        # no private key shares form permissioned network
+    if network == MAINNET:
+        # no private key shares for networks other than mainnet
         committee_paths = create_committee_shares(
             network=network,
             gql_client=sw_gql_client,
@@ -114,8 +122,8 @@ def create_deposit_data(
     click.echo(specification)
 
     # 7. Generate committee message
-    if network != PERM_GOERLI:
-        # no private key shares form permissioned network
+    if network == MAINNET:
+        # no private key shares for networks other than mainnet
         click.secho(
             "Share the encrypted validator key shares with the committee members through Telegram:",
             bold=True,
