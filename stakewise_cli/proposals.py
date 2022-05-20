@@ -1,3 +1,6 @@
+from web3 import Web3
+
+
 def generate_referrals_swise_specification(
     from_block,
     to_block,
@@ -9,10 +12,9 @@ def generate_referrals_swise_specification(
     referral_share,
 ) -> str:
     specification = f"""
-## Specification
 # Referral Rewards Distribution
 
-Distribute {total_amount} SWISE to referrers specified in {ipfs_url}.
+Distribute {Web3.fromWei(total_amount, "ether")} SWISE to referrers specified in {ipfs_url}.
 
 The rewards distribution was calculated with the following parameters:
 * From block number: {from_block}
