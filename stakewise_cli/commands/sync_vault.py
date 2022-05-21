@@ -7,7 +7,14 @@ from requests.exceptions import ConnectionError, HTTPError
 from web3 import Web3
 
 from stakewise_cli.eth2 import get_beacon_client, validate_mnemonic
-from stakewise_cli.networks import GNOSIS_CHAIN, GOERLI, MAINNET, NETWORKS, PERM_GOERLI
+from stakewise_cli.networks import (
+    GNOSIS_CHAIN,
+    GOERLI,
+    HARBOUR_GOERLI,
+    HARBOUR_MAINNET,
+    MAINNET,
+    NETWORKS,
+)
 from stakewise_cli.settings import VAULT_VALIDATORS_MOUNT_POINT
 from stakewise_cli.storages.vault import Vault
 
@@ -43,7 +50,8 @@ def validate_operator_address(ctx, param, value):
     help="The network of ETH2 you are targeting.",
     prompt="Please choose the network name",
     type=click.Choice(
-        [MAINNET, GOERLI, PERM_GOERLI, GNOSIS_CHAIN], case_sensitive=False
+        [MAINNET, GOERLI, HARBOUR_MAINNET, HARBOUR_GOERLI, GNOSIS_CHAIN],
+        case_sensitive=False,
     ),
 )
 @click.option(
