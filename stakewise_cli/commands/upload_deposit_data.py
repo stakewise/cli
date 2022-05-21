@@ -11,7 +11,14 @@ from stakewise_cli.eth1 import generate_specification, validate_operator_address
 from stakewise_cli.eth2 import get_registered_public_keys, verify_deposit_data
 from stakewise_cli.ipfs import upload_to_ipfs
 from stakewise_cli.merkle_tree import MerkleTree
-from stakewise_cli.networks import GNOSIS_CHAIN, GOERLI, MAINNET, NETWORKS, PERM_GOERLI
+from stakewise_cli.networks import (
+    GNOSIS_CHAIN,
+    GOERLI,
+    HARBOUR_GOERLI,
+    HARBOUR_MAINNET,
+    MAINNET,
+    NETWORKS,
+)
 from stakewise_cli.queries import get_ethereum_gql_client, get_stakewise_gql_client
 from stakewise_cli.typings import Bytes4, Bytes32, Gwei, MerkleDepositData
 
@@ -116,7 +123,8 @@ def process_file(
     help="The network of ETH2 you are targeting.",
     prompt="Please choose the network name",
     type=click.Choice(
-        [MAINNET, GOERLI, PERM_GOERLI, GNOSIS_CHAIN], case_sensitive=False
+        [MAINNET, GOERLI, HARBOUR_MAINNET, HARBOUR_GOERLI, GNOSIS_CHAIN],
+        case_sensitive=False,
     ),
 )
 @click.option(

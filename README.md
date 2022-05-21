@@ -54,7 +54,7 @@ After fetching the keys, make sure you have the right number of validators runni
 
 Once you're 100% ready for Ether assignments, commit your operator:
 
-- Go to the Operators smart contract ([Goerli](https://goerli.etherscan.io/address/0x0d92156861a0BC7037cC21470327Bd3Bc750EB1D#writeProxyContract), [Perm Goerli](https://goerli.etherscan.io/address/0x7C27896338e3130036E53BCC0f013cB20e21991c#writeProxyContract), [Mainnet](https://etherscan.io/address/0x002932e11E95DC84C17ed5f94a0439645D8a97BC))
+- Go to the Operators smart contract ([Goerli](https://goerli.etherscan.io/address/0x0d92156861a0BC7037cC21470327Bd3Bc750EB1D#writeProxyContract), [Harbour Goerli](https://goerli.etherscan.io/address/0x7C27896338e3130036E53BCC0f013cB20e21991c#writeProxyContract), [Mainnet](https://etherscan.io/address/0x002932e11E95DC84C17ed5f94a0439645D8a97BC), [Harbour Mainnet](https://etherscan.io/address/0x270ad793b7bb315a9fd07f1fffd8ab1e3621df7e))
 - Click on `Connect to Web3` button and connect your wallet. The address must match the one used during proposal generation.
 - Call `commitOperator` function. If that's your onboarding, you must deposit 1 ETH (specified in Wei) collateral together with the call.
 
