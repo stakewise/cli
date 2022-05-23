@@ -10,7 +10,13 @@ from web3 import Web3
 from stakewise_cli.contracts import get_ens_node_id, get_ens_resolver, get_web3_client
 from stakewise_cli.ipfs import ipfs_fetch
 from stakewise_cli.networks import GNOSIS_CHAIN, MAINNET, NETWORKS
-from stakewise_cli.queries import OPERATOR_QUERY, REGISTRATIONS_QUERY, VALIDATORS_QUERY
+from stakewise_cli.queries import (
+    BLOCK_TIMESTAMP_QUERY,
+    OPERATOR_QUERY,
+    REFERRALS_QUERY,
+    REGISTRATIONS_QUERY,
+    VALIDATORS_QUERY,
+)
 
 
 @backoff.on_exception(backoff.expo, Exception, max_time=180)
@@ -56,6 +62,34 @@ def get_validator_operator_address(
         return None
 
     return Web3.toChecksumAddress(validators[0]["operator"]["id"])
+
+
+@backoff.on_exception(backoff.expo, Exception, max_time=30)
+def get_referrals(
+    gql_client: GqlClient, from_block: int, to_block: int
+) -> Dict[ChecksumAddress, int]:
+    """Fetches referrals fee from graph"""
+    last_id = ""
+    result: Dict = gql_client.execute(
+        document=REFERRALS_QUERY,
+        variable_values=dict(from_block=from_block, to_block=to_block, last_id=last_id),
+    )
+    referrals_chunk = result.get("referrals", [])
+    referrals = referrals_chunk
+
+    # accumulate chunks
+    while len(referrals_chunk) >= 1000:
+        last_id = referrals_chunk[-1]["id"]
+        result: Dict = gql_client.execute(
+            document=REFERRALS_QUERY,
+            variable_values=dict(
+                from_block=from_block, to_block=to_block, last_id=last_id
+            ),
+        )
+        referrals_chunk = result.get("referrals", [])
+        referrals.extend(referrals_chunk)
+
+    return referrals
 
 
 @backoff.on_exception(backoff.expo, Exception, max_time=180)
@@ -124,6 +158,20 @@ def is_validator_registered(gql_client: GqlClient, public_key: HexStr) -> bool:
     )
     validators = result["validatorRegistrations"]
     return bool(validators)
+
+
+@backoff.on_exception(backoff.expo, Exception, max_time=1)
+def get_block_timestamp(gql_client: GqlClient, block_number: int) -> Union[int, None]:
+    """Get block timestamp."""
+    result: Dict = gql_client.execute(
+        document=BLOCK_TIMESTAMP_QUERY,
+        variable_values=dict(block_number=block_number),
+    )
+    blocks = result["blocks"]
+    if not blocks:
+        return
+
+    return int(blocks[0]["timestamp"])
 
 
 def validate_operator_address(value):

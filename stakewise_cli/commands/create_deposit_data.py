@@ -13,7 +13,7 @@ from stakewise_cli.eth2 import (
     generate_unused_validator_keys,
     validate_mnemonic,
 )
-from stakewise_cli.ipfs import upload_deposit_data_to_ipfs
+from stakewise_cli.ipfs import upload_to_ipfs
 from stakewise_cli.networks import (
     GNOSIS_CHAIN,
     GOERLI,
@@ -104,7 +104,7 @@ def create_deposit_data(
         )
 
     # 5. Upload deposit data to IPFS
-    ipfs_url = upload_deposit_data_to_ipfs(deposit_data)
+    ipfs_url = upload_to_ipfs(deposit_data)
 
     # 6. Generate proposal specification part
     specification = generate_specification(

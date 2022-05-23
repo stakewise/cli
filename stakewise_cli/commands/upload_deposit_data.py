@@ -9,7 +9,7 @@ from web3 import Web3
 
 from stakewise_cli.eth1 import generate_specification, validate_operator_address
 from stakewise_cli.eth2 import get_registered_public_keys, verify_deposit_data
-from stakewise_cli.ipfs import upload_deposit_data_to_ipfs
+from stakewise_cli.ipfs import upload_to_ipfs
 from stakewise_cli.merkle_tree import MerkleTree
 from stakewise_cli.networks import (
     GNOSIS_CHAIN,
@@ -198,7 +198,7 @@ def upload_deposit_data(network: str, path: str) -> None:
     merkle_root: HexStr = merkle_tree.get_hex_root()
 
     # upload deposit data to IPFS
-    ipfs_url = upload_deposit_data_to_ipfs(merkle_deposit_datum)
+    ipfs_url = upload_to_ipfs(merkle_deposit_datum)
 
     operator = click.prompt(
         "Enter the wallet address that will receive rewards."
