@@ -87,7 +87,7 @@ def create_committee_shares(
         mkdir(committee_folder)
 
     committee = get_operators_committee(network)
-    committee_final_shares: List[List[list]] = [
+    committee_final_shares: List[List[List]] = [
         [[] for _ in range(len(committee[i]))] for i in range(len(committee))
     ]
     for keypair in keypairs:
