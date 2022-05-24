@@ -1,7 +1,10 @@
 import decimal
+from typing import Dict
 
 import click
+from eth_typing import ChecksumAddress
 from web3 import Web3
+from web3.types import Middleware, MiddlewareOnion, Wei  # noqa: F401
 
 from stakewise_cli.coingecko import get_average_range_price
 from stakewise_cli.eth1 import get_block_timestamp, get_referrals, get_web3_client
@@ -126,7 +129,7 @@ def create_referrals_proposal(
         gql_client=sw_gql_client, from_block=from_block, to_block=to_block
     )
     token_address = NETWORKS[network]["SWISE_TOKEN_CONTRACT_ADDRESS"]
-    referrals = {}
+    referrals: Dict[ChecksumAddress, Dict[ChecksumAddress, int]] = {}
     total_amount = 0
     for item in referrals_data:
         referrer = Web3.toChecksumAddress(item["referrer"])

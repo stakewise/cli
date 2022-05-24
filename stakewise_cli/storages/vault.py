@@ -278,7 +278,7 @@ class Vault(object):
             show_pos=True,
         ) as missing_keypairs:
             for public_key in missing_keypairs:
-                validator_name = min(validator_keys_count, key=validator_keys_count.get)
+                validator_name = min(validator_keys_count, key=validator_keys_count.get)  # type: ignore
                 if public_key not in new_state:
                     signing_key = self.vault_missing_keypairs[public_key]
                     secret = signing_key.key.to_bytes(32, "big")

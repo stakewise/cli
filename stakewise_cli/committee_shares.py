@@ -21,7 +21,9 @@ from stakewise_cli.typings import BLSPrivkey, KeyPair
 PRIME = curve_order
 
 
-def get_polynomial_points(coefficients: List[int], num_points: int) -> List[BLSPrivkey]:
+def get_polynomial_points(
+    coefficients: List[BLSPrivkey], num_points: int
+) -> List[BLSPrivkey]:
     """Calculates polynomial points."""
     points = []
     for x in range(1, num_points + 1):
@@ -85,7 +87,7 @@ def create_committee_shares(
         mkdir(committee_folder)
 
     committee = get_operators_committee(network)
-    committee_final_shares = [
+    committee_final_shares: List[List[List]] = [
         [[] for _ in range(len(committee[i]))] for i in range(len(committee))
     ]
     for keypair in keypairs:
