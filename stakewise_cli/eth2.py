@@ -2,6 +2,8 @@ import os
 import secrets
 import string
 from enum import Enum
+from itertools import chain
+from multiprocessing import Pool
 from typing import Dict, List, Set, Tuple
 
 import backoff
@@ -43,6 +45,7 @@ from stakewise_cli.typings import (
     MerkleDepositData,
     SigningKey,
 )
+from stakewise_cli.utils import chunkify
 
 # TODO: find a way to import "from eth2deposit.utils.constants import WORD_LISTS_PATH"
 WORD_LISTS_PATH = os.path.join(os.path.dirname(__file__), "word_lists")
@@ -117,53 +120,65 @@ def create_new_mnemonic(mnemonic_language: str) -> str:
     return mnemonic
 
 
+def generate_keypairs(
+    indexes: List[int], mnemonic: str, gql_client: Client
+) -> List[KeyPair]:
+    pub_key_to_priv_key: Dict[HexStr, BLSPrivkey] = {}
+
+    # derive signing key
+    public_keys: List[HexStr] = []
+    for index in indexes:
+        signing_key = get_mnemonic_signing_key(mnemonic, index, IS_LEGACY)
+        # derive public key
+        public_key = w3.toHex(G2ProofOfPossession.SkToPk(signing_key.key))
+        # store keypairs
+        pub_key_to_priv_key[public_key] = signing_key.key
+        public_keys.append(public_key)
+
+    # remove keys that were already registered in beacon chain
+    result: Dict = gql_client.execute(
+        document=REGISTRATIONS_QUERY,
+        variable_values=dict(public_keys=public_keys),
+    )
+    registrations = result["validatorRegistrations"]
+    for registration in registrations:
+        pub_key_to_priv_key.pop(registration["publicKey"], None)
+
+    return [
+        KeyPair(private_key=priv_key, public_key=pub_key)
+        for pub_key, priv_key in pub_key_to_priv_key.items()
+    ]
+
+
 def generate_unused_validator_keys(
-    gql_client: Client, mnemonic: str, keys_count: int
+    gql_client: Client,
+    mnemonic: str,
+    keys_count: int,
 ) -> List[KeyPair]:
     """Generates specified number of unused validator key-pairs from the mnemonic."""
-    pub_key_to_priv_key: Dict[HexStr, BLSPrivkey] = {}
     with click.progressbar(
         length=keys_count,
         label="Creating validator keys:\t\t",
         show_percent=False,
         show_pos=True,
     ) as bar:
-        from_index = 0
-        while len(pub_key_to_priv_key) < keys_count:
-            curr_progress = len(pub_key_to_priv_key)
-            chunk_size = min(100, keys_count - curr_progress)
+        with Pool() as pool:
 
-            # generate keys in chunks
-            public_keys_chunk: List[HexStr] = []
-            while len(public_keys_chunk) != chunk_size:
-                # derive signing key
-                signing_key = get_mnemonic_signing_key(mnemonic, from_index, IS_LEGACY)
+            def bar_updated(result, *args, **kwargs):
+                bar.update(len(result))
 
-                # derive public key
-                public_key = w3.toHex(G2ProofOfPossession.SkToPk(signing_key.key))
-
-                # store keypairs
-                pub_key_to_priv_key[public_key] = signing_key.key
-                public_keys_chunk.append(public_key)
-
-                # increase index for generating other keys
-                from_index += 1
-
-            # remove keys that were already registered in beacon chain
-            result: Dict = gql_client.execute(
-                document=REGISTRATIONS_QUERY,
-                variable_values=dict(public_keys=public_keys_chunk),
-            )
-            registrations = result["validatorRegistrations"]
-            for registration in registrations:
-                pub_key_to_priv_key.pop(registration["publicKey"], None)
-
-            bar.update(len(pub_key_to_priv_key) - curr_progress)
-
-    return [
-        KeyPair(private_key=priv_key, public_key=pub_key)
-        for pub_key, priv_key in pub_key_to_priv_key.items()
-    ]
+            results = []
+            indexes = [i for i in range(keys_count)]
+            for chunk in chunkify(indexes, 50):
+                results.append(
+                    pool.apply_async(
+                        generate_keypairs,
+                        [chunk, mnemonic, gql_client],
+                        callback=bar_updated,
+                    )
+                )
+            [result.wait() for result in results]
+            return list(chain.from_iterable([result.get() for result in results]))
 
 
 def get_mnemonic_signing_key(
@@ -276,6 +291,42 @@ def verify_deposit_data(
     return deposit_data.hash_tree_root == hash_tree_root
 
 
+def generate_deposit_data(
+    withdrawal_credentials: HexStr,
+    deposit_amount: Wei,
+    withdrawal_credentials_bytes: Bytes32,
+    deposit_amount_gwei: Gwei,
+    genesis_fork_version: bytes,
+    keypair: KeyPair,
+) -> (MerkleDepositData, bytes):
+    private_key = keypair["private_key"]
+    public_key = keypair["public_key"]
+    signature, deposit_data_root = get_deposit_data_signature(
+        private_key=private_key,
+        public_key=BLSPubkey(w3.toBytes(hexstr=public_key)),
+        withdrawal_credentials=withdrawal_credentials_bytes,
+        amount=deposit_amount_gwei,
+        fork_version=Bytes4(genesis_fork_version),
+    )
+    encoded_data: bytes = w3.codec.encode_abi(
+        ["bytes", "bytes32", "bytes", "bytes32"],
+        [
+            public_key,
+            withdrawal_credentials_bytes,
+            signature,
+            deposit_data_root,
+        ],
+    )
+    return MerkleDepositData(
+        public_key=public_key,
+        signature=w3.toHex(signature),
+        amount=str(deposit_amount),
+        withdrawal_credentials=withdrawal_credentials,
+        deposit_data_root=w3.toHex(deposit_data_root),
+        proof=[],
+    ), w3.keccak(primitive=encoded_data)
+
+
 def generate_merkle_deposit_datum(
     genesis_fork_version: bytes,
     withdrawal_credentials: HexStr,
@@ -293,36 +344,31 @@ def generate_merkle_deposit_datum(
     merkle_elements: List[bytes] = []
     with click.progressbar(
         validator_keypairs, label=loading_label, show_percent=False, show_pos=True
-    ) as keypairs:
-        for keypair in keypairs:
-            private_key = keypair["private_key"]
-            public_key = keypair["public_key"]
-            signature, deposit_data_root = get_deposit_data_signature(
-                private_key=private_key,
-                public_key=BLSPubkey(w3.toBytes(hexstr=public_key)),
-                withdrawal_credentials=withdrawal_credentials_bytes,
-                amount=deposit_amount_gwei,
-                fork_version=Bytes4(genesis_fork_version),
-            )
-            encoded_data: bytes = w3.codec.encode_abi(
-                ["bytes", "bytes32", "bytes", "bytes32"],
-                [
-                    public_key,
-                    withdrawal_credentials_bytes,
-                    signature,
-                    deposit_data_root,
-                ],
-            )
-            merkle_elements.append(w3.keccak(primitive=encoded_data))
-            deposit_data = MerkleDepositData(
-                public_key=public_key,
-                signature=w3.toHex(signature),
-                amount=str(deposit_amount),
-                withdrawal_credentials=withdrawal_credentials,
-                deposit_data_root=w3.toHex(deposit_data_root),
-                proof=[],
-            )
-            merkle_deposit_datum.append(deposit_data)
+    ) as bar:
+        with Pool() as pool:
+
+            def bar_updated(*args, **kwargs):
+                bar.update(1)
+
+            results = [
+                pool.apply_async(
+                    generate_deposit_data,
+                    [
+                        withdrawal_credentials,
+                        deposit_amount,
+                        withdrawal_credentials_bytes,
+                        deposit_amount_gwei,
+                        genesis_fork_version,
+                        keypair,
+                    ],
+                    callback=bar_updated,
+                )
+                for keypair in validator_keypairs
+            ]
+            [result.wait() for result in results]
+            for deposit_data, merkle_element in [result.get() for result in results]:
+                merkle_elements.append(merkle_element)
+                merkle_deposit_datum.append(deposit_data)
 
     merkle_tree = MerkleTree(merkle_elements)
 

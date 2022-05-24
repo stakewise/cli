@@ -1,6 +1,7 @@
 import errno
 import time
 from functools import cached_property, lru_cache
+from multiprocessing import Pool
 from os import listdir, makedirs
 from os.path import exists
 from typing import Dict, Set
@@ -56,6 +57,33 @@ class LocalStorage(object):
 
         return result
 
+    def generate_keystores(self, index):
+        signing_key = get_mnemonic_signing_key(self.mnemonic, index, IS_LEGACY)
+        public_key = Web3.toHex(G2ProofOfPossession.SkToPk(signing_key.key))
+
+        is_registered = is_validator_registered(
+            gql_client=self.eth_gql_client, public_key=public_key
+        )
+        if is_registered:
+            click.secho(
+                f"Public key {public_key} is in deposit data and already in use, skipping...",
+                bold=True,
+                fg="red",
+            )
+            return
+        secret = signing_key.key.to_bytes(32, "big")
+
+        password = self.get_or_create_keystore_password()
+        keystore = ScryptKeystore.encrypt(
+            secret=secret, password=password, path=signing_key.path
+        ).as_json()
+
+        keystore_name = "keystore-%s-%i.json" % (
+            signing_key.path.replace("/", "_"),
+            time.time(),
+        )
+        return keystore_name, keystore
+
     @cached_property
     def deposit_data_keystores(self) -> Dict[str, str]:
         """
@@ -67,45 +95,27 @@ class LocalStorage(object):
         if not keys_count:
             return keystores
 
-        from_index = 0
         with click.progressbar(
             length=keys_count,
             label="Syncing deposit data keystores\t\t",
             show_percent=False,
             show_pos=True,
         ) as bar:
-            while True:
-                signing_key = get_mnemonic_signing_key(
-                    self.mnemonic, from_index, IS_LEGACY
-                )
-                public_key = Web3.toHex(G2ProofOfPossession.SkToPk(signing_key.key))
-                if public_key not in self.operator_deposit_data_public_keys:
-                    break
+            with Pool() as pool:
 
-                is_registered = is_validator_registered(
-                    gql_client=self.eth_gql_client, public_key=public_key
-                )
-                if is_registered:
-                    click.secho(
-                        f"Public key {public_key} is in deposit data and already in use, skipping...",
-                        bold=True,
-                        fg="red",
-                    )
+                def bar_updated(*args, **kwargs):
                     bar.update(1)
-                    continue
 
-                secret = signing_key.key.to_bytes(32, "big")
-                password = self.get_or_create_keystore_password()
-                keystore = ScryptKeystore.encrypt(
-                    secret=secret, password=password, path=signing_key.path
-                ).as_json()
-                keystore_name = "keystore-%s-%i.json" % (
-                    signing_key.path.replace("/", "_"),
-                    time.time(),
-                )
-                keystores[keystore_name] = keystore
-                from_index += 1
-                bar.update(1)
+                results = [
+                    pool.apply_async(
+                        self.generate_keystores,
+                        [index],
+                        callback=bar_updated,
+                    )
+                    for index in [i for i in range(keys_count)]
+                ]
+                [result.wait() for result in results]
+                keystores = {x[0]: x[1] for x in [result.get() for result in results]}
 
         return keystores
 
