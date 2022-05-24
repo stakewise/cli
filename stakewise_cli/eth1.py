@@ -80,7 +80,7 @@ def get_referrals(
     # accumulate chunks
     while len(referrals_chunk) >= 1000:
         last_id = referrals_chunk[-1]["id"]
-        result: Dict = gql_client.execute(
+        result = gql_client.execute(
             document=REFERRALS_QUERY,
             variable_values=dict(
                 from_block=from_block, to_block=to_block, last_id=last_id
@@ -169,7 +169,7 @@ def get_block_timestamp(gql_client: GqlClient, block_number: int) -> Union[int, 
     )
     blocks = result["blocks"]
     if not blocks:
-        return
+        return None
 
     return int(blocks[0]["timestamp"])
 

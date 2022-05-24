@@ -26,7 +26,7 @@ def add_ipfs_prefix(ipfs_id: str) -> str:
 
 
 @backoff.on_exception(backoff.expo, Exception, max_time=180)
-def upload_to_ipfs(data: any) -> str:
+def upload_to_ipfs(data: Any) -> str:
     """Submits data to IPFS."""
     ipfs_ids = []
     for pin_endpoint in IPFS_PIN_ENDPOINTS:
@@ -61,7 +61,7 @@ def upload_to_ipfs(data: any) -> str:
     if not ipfs_ids:
         raise click.ClickException("Failed to submit data to IPFS")
 
-    ipfs_ids = set(map(add_ipfs_prefix, ipfs_ids))
+    ipfs_ids = list(set(map(add_ipfs_prefix, ipfs_ids)))
     if len(ipfs_ids) != 1:
         raise click.ClickException(f"Received different ipfs IDs: {','.join(ipfs_ids)}")
 

@@ -17,9 +17,9 @@ def request_day_price(coin_id, date):
     return decimal.Decimal(price)
 
 
-def get_average_range_price(coin_id: str, from_date: int, to_date: int):
-    from_date = datetime.fromtimestamp(from_date)
-    to_date = datetime.fromtimestamp(to_date)
+def get_average_range_price(coin_id: str, from_timestamp: int, to_timestamp: int):
+    from_date = datetime.fromtimestamp(from_timestamp)
+    to_date = datetime.fromtimestamp(to_timestamp)
 
     days = []
     base = from_date

@@ -36,17 +36,17 @@ def validate_private_key(ctx, param, value) -> str:
 def create_shard_pubkeys(shard: str, private_key: str) -> None:
     try:
         with open(private_key, "r") as f:
-            private_key = RSA.import_key(f.read())
+            rsa_key = RSA.import_key(f.read())
         with open(shard, "rb") as f:
             enc_session_key, nonce, tag, ciphertext = [
-                f.read(x) for x in (private_key.size_in_bytes(), 16, 16, -1)
+                f.read(x) for x in (rsa_key.size_in_bytes(), 16, 16, -1)
             ]
     except:  # noqa: E722
         raise click.ClickException("Invalid operator shard file")
 
     # Decrypt the session key with the private RSA key
     try:
-        cipher_rsa = PKCS1_OAEP.new(private_key)
+        cipher_rsa = PKCS1_OAEP.new(rsa_key)
         session_key = cipher_rsa.decrypt(enc_session_key)
     except:  # noqa: E722
         raise click.ClickException(
