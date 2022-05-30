@@ -84,7 +84,7 @@ def sync_db(network: str, operator: ChecksumAddress, db_url: str) -> None:
     )
 
     click.confirm(
-        f"Synced {len(database.keys)} key pairs, apply changes to database?",
+        f"Synced {len(database.keys)} key pairs, apply changes to the database?",
         default=True,
         abort=True,
     )
