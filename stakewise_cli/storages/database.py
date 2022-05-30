@@ -62,15 +62,13 @@ class Database:
             show_percent=False,
             show_pos=True,
         ) as bar:
-            while index < keys_count:
+            while True:
                 private_key = get_mnemonic_signing_key(self.mnemonic, index, IS_LEGACY)
                 public_key = Web3.toHex(G2ProofOfPossession.SkToPk(private_key.key))
-
                 public_key = add_0x_prefix(public_key)
 
                 if public_key not in self.operator_deposit_data_public_keys:
-                    index += 1
-                    continue
+                    break
 
                 data = bytes(str(private_key), "ascii")
                 cipher = self.generate_cipher()
