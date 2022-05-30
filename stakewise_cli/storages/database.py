@@ -58,7 +58,7 @@ class Database:
 
         with click.progressbar(
             length=keys_count,
-            label="Syncing deposit data keystores\t\t",
+            label="Syncing key pairs\t\t",
             show_percent=False,
             show_pos=True,
         ) as bar:
