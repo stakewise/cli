@@ -32,4 +32,11 @@ class SigningKey(NamedTuple):
     key: BLSPrivkey
 
 
+class DatabaseKeyRecord(TypedDict):
+    public_key: HexStr
+    private_key: str
+    nonce: str
+    validator_index: int
+
+
 VaultState = Dict[HexStr, VaultKeystore]

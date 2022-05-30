@@ -21,6 +21,7 @@ click = "==8.1.2"
 requests-toolbelt = "==0.9.1"
 colorama = "==0.4.4"
 pycryptodome = "==3.14.1"
+psycopg2-binary = "==2.9.3"
 
 [tool.poetry.dev-dependencies]
 mypy = "==0.942"
