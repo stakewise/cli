@@ -61,6 +61,7 @@ def validate_operator_address(ctx, param, value):
     callback=validate_operator_address,
 )
 def sync_vault(network: str, operator: ChecksumAddress) -> None:
+    global VAULT_VALIDATORS_MOUNT_POINT
     while True:
         try:
             vault_client = get_vault_client()
@@ -98,6 +99,14 @@ def sync_vault(network: str, operator: ChecksumAddress) -> None:
             fg="red",
         )
 
+    namespace = click.prompt(
+        "Enter the validators kubernetes namespace",
+        default="validators",
+        type=click.STRING,
+    )
+    if VAULT_VALIDATORS_MOUNT_POINT == "":
+        VAULT_VALIDATORS_MOUNT_POINT = namespace
+
     vault_client.secrets.kv.default_kv_version = 1
     try:
         vault_client.sys.enable_secrets_engine(
@@ -126,11 +135,6 @@ def sync_vault(network: str, operator: ChecksumAddress) -> None:
             "Error: failed to connect to the Kubernetes API host", bold=True, fg="red"
         )
 
-    namespace = click.prompt(
-        "Enter the validators kubernetes namespace",
-        default="validators",
-        type=click.STRING,
-    )
     mnemonic = click.prompt(
         'Enter your mnemonic separated by spaces (" ")',
         value_proc=validate_mnemonic,
