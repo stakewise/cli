@@ -37,7 +37,7 @@ def validate_db_uri(ctx, param, value):
 @click.option(
     "--network",
     default=MAINNET,
-    help="The network of ETH2 you are targeting.",
+    help="The network you are targeting.",
     prompt="Please choose the network name",
     type=click.Choice(
         [MAINNET, GOERLI, HARBOUR_MAINNET, HARBOUR_GOERLI, GNOSIS_CHAIN],
@@ -51,9 +51,9 @@ def validate_db_uri(ctx, param, value):
     callback=validate_operator_address,
 )
 @click.option(
-    "--db_url",
+    "--db-url",
     help="The database connection address.",
-    prompt="Enter the database connection string, ex. 'postgresql://postgres:postgres@localhost/postgres'",
+    prompt="Enter the database connection string, ex. 'postgresql://username:pass@hostname/dbname'",
     callback=validate_db_uri,
 )
 def sync_db(network: str, operator: ChecksumAddress, db_url: str) -> None:
@@ -89,7 +89,7 @@ def sync_db(network: str, operator: ChecksumAddress, db_url: str) -> None:
         f"The database contains {len(database.keys)} validator keys.\n"
         f'Please upgrade the "validators" helm chart with "validatorsCount" set to {database.validators_count}\n'
         f'and "reimportKeystores" set to "true".\n'
-        f'Set secret to "{database.cipher_key_str}"',
+        f'Set "decryptionKey" to "{database.cipher_key_str}"',
         bold=True,
         fg="green",
     )

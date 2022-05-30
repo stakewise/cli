@@ -69,9 +69,12 @@ class Database:
                 public_key = add_0x_prefix(public_key)
 
                 if public_key not in self.operator_deposit_data_public_keys:
-                    raise click.ClickException(
-                        f"Public key {public_key} not presented in {self.deposit_data_ipfs_link}"
+                    click.secho(
+                        f"Public key {public_key} not presented in {self.deposit_data_ipfs_link}",
+                        fg="red",
                     )
+                    index += 1
+                    continue
 
                 data = bytes(str(private_key), "ascii")
                 cipher = self.generate_cipher()
@@ -118,6 +121,11 @@ class Database:
 
         return result
 
+    def apply_changes(self) -> None:
+        """Updates database records to new state."""
+        self.init_db()
+        self.save_to_db()
+
     def init_db(self) -> None:
         conn = get_db_connection(self.db_url)
         cur = conn.cursor()
@@ -136,7 +144,7 @@ class Database:
         cur.close()
         conn.close()
 
-    def save_to_db(self, keys: List[DatabaseKeyRecord]) -> None:
+    def save_to_db(self) -> None:
         conn = get_db_connection(self.db_url)
         cur = conn.cursor()
         execute_values(
@@ -144,17 +152,12 @@ class Database:
             "INSERT INTO keys (public_key, private_key, nonce, validator_index) VALUES %s",
             [
                 (x["public_key"], x["private_key"], x["nonce"], x["validator_index"])
-                for x in keys
+                for x in self.keys
             ],
         )
         conn.commit()
         cur.close()
         conn.close()
-
-    def apply_changes(self) -> None:
-        """Updates database records to new state."""
-        self.init_db()
-        self.save_to_db(self.keys)
 
     def generate_cipher(self) -> AES.MODE_EAX:
         return AES.new(self.cipher_key, AES.MODE_EAX)
