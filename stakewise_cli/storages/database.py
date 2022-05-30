@@ -69,10 +69,6 @@ class Database:
                 public_key = add_0x_prefix(public_key)
 
                 if public_key not in self.operator_deposit_data_public_keys:
-                    click.secho(
-                        f"Public key {public_key} not presented in {self.deposit_data_ipfs_link}",
-                        fg="red",
-                    )
                     index += 1
                     continue
 
