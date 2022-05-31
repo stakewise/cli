@@ -52,39 +52,43 @@ class Database:
         """
         Returns prepared database key records that are in the latest deposit data.
         """
-        keystores: List[DatabaseKeyRecord] = []
+        deposit_data_key_records: List[DatabaseKeyRecord] = []
+        other_key_records: List[DatabaseKeyRecord] = []
+
         keys_count = len(self.operator_deposit_data_public_keys)
         index = 0
-
         with click.progressbar(
             length=keys_count,
             label="Syncing key pairs\t\t",
             show_percent=False,
             show_pos=True,
         ) as bar:
-            while True:
+            while len(deposit_data_key_records) < keys_count:
                 private_key = get_mnemonic_signing_key(self.mnemonic, index, IS_LEGACY)
                 public_key = Web3.toHex(G2ProofOfPossession.SkToPk(private_key.key))
                 public_key = add_0x_prefix(public_key)
 
-                if public_key not in self.operator_deposit_data_public_keys:
-                    break
-
                 data = bytes(str(private_key), "ascii")
                 cipher = self.generate_cipher()
                 encrypted_private_key = cipher.encrypt(data)
-                keystores.append(
-                    DatabaseKeyRecord(
-                        public_key=public_key,
-                        private_key=self._bytes_to_str(encrypted_private_key),
-                        nonce=self._bytes_to_str(cipher.nonce),
-                        validator_index=index // self.max_keys_per_validator,
-                    )
+
+                key_record = DatabaseKeyRecord(
+                    public_key=public_key,
+                    private_key=self._bytes_to_str(encrypted_private_key),
+                    nonce=self._bytes_to_str(cipher.nonce),
+                    validator_index=index // self.max_keys_per_validator,
                 )
+
+                if public_key in self.operator_deposit_data_public_keys:
+                    deposit_data_key_records.append(key_record)
+                    bar.update(1)
+
+                else:
+                    other_key_records.append(key_record)
+
                 index += 1
 
-                bar.update(1)
-        return keystores
+        return other_key_records + deposit_data_key_records
 
     @cached_property
     def validators_count(self) -> int:
