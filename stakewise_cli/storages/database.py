@@ -50,7 +50,7 @@ class Database:
     @cached_property
     def keys(self) -> Set[DatabaseKeyRecord]:
         """
-        Returns prepared database key records that are in the latest deposit data.
+        Returns prepared database key records from the latest deposit data or already registered.
         """
         deposit_data_key_records: Set[DatabaseKeyRecord] = set()
         other_key_records: Set[DatabaseKeyRecord] = set()
