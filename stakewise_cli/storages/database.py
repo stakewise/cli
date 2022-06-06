@@ -1,6 +1,6 @@
 from base64 import b64encode
 from functools import cached_property
-from typing import List, Set
+from typing import Set
 from urllib.parse import urlparse
 
 import click
@@ -48,12 +48,12 @@ class Database:
         return b64encode(self.cipher_key).decode("ascii")
 
     @cached_property
-    def keys(self) -> List[DatabaseKeyRecord]:
+    def keys(self) -> Set[DatabaseKeyRecord]:
         """
         Returns prepared database key records that are in the latest deposit data.
         """
-        deposit_data_key_records: List[DatabaseKeyRecord] = []
-        other_key_records: List[DatabaseKeyRecord] = []
+        deposit_data_key_records: Set[DatabaseKeyRecord] = set()
+        other_key_records: Set[DatabaseKeyRecord] = set()
 
         keys_count = len(self.operator_deposit_data_public_keys)
         index = 0
@@ -64,6 +64,8 @@ class Database:
             show_pos=True,
         ) as bar:
             while len(deposit_data_key_records) < keys_count:
+                curr_progress = len(deposit_data_key_records)
+
                 private_key = get_mnemonic_signing_key(self.mnemonic, index, IS_LEGACY)
                 public_key = Web3.toHex(G2ProofOfPossession.SkToPk(private_key.key))
                 public_key = add_0x_prefix(public_key)
@@ -80,15 +82,14 @@ class Database:
                 )
 
                 if public_key in self.operator_deposit_data_public_keys:
-                    deposit_data_key_records.append(key_record)
-                    bar.update(1)
-
+                    deposit_data_key_records.add(key_record)
+                    bar.update(len(deposit_data_key_records) - curr_progress)
                 else:
-                    other_key_records.append(key_record)
+                    other_key_records.add(key_record)
 
                 index += 1
 
-        return other_key_records + deposit_data_key_records
+        return other_key_records.union(deposit_data_key_records)
 
     @cached_property
     def validators_count(self) -> int:
