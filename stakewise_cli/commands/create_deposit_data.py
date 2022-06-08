@@ -4,7 +4,7 @@ from os.path import join
 import click
 
 from stakewise_cli.committee_shares import create_committee_shares
-from stakewise_cli.eth1 import generate_specification, validate_operator_address
+from stakewise_cli.eth1 import generate_specification
 from stakewise_cli.eth2 import (
     LANGUAGES,
     VALIDATOR_DEPOSIT_AMOUNT,
@@ -23,6 +23,7 @@ from stakewise_cli.networks import (
     NETWORKS,
 )
 from stakewise_cli.queries import get_ethereum_gql_client, get_stakewise_gql_client
+from stakewise_cli.validators import validate_operator_address
 
 
 @click.command(help="Creates deposit data and generates a forum post specification")

@@ -7,7 +7,7 @@ import click
 from eth_typing import BLSPubkey, BLSSignature, HexStr
 from web3 import Web3
 
-from stakewise_cli.eth1 import generate_specification, validate_operator_address
+from stakewise_cli.eth1 import generate_specification
 from stakewise_cli.eth2 import get_registered_public_keys, verify_deposit_data
 from stakewise_cli.ipfs import upload_to_ipfs
 from stakewise_cli.merkle_tree import MerkleTree
@@ -21,6 +21,7 @@ from stakewise_cli.networks import (
 )
 from stakewise_cli.queries import get_ethereum_gql_client, get_stakewise_gql_client
 from stakewise_cli.typings import Bytes4, Bytes32, Gwei, MerkleDepositData
+from stakewise_cli.validators import validate_operator_address
 
 w3 = Web3()
 

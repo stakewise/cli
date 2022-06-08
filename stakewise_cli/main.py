@@ -15,7 +15,11 @@ from stakewise_cli.commands.get_mnemonic_pubkey import get_mnemonic_pubkey  # no
 from stakewise_cli.commands.get_pubkey_index import get_pubkey_index  # noqa: E402
 from stakewise_cli.commands.sync_db import sync_db  # noqa: E402
 from stakewise_cli.commands.sync_local import sync_local  # noqa: E402
+from stakewise_cli.commands.sync_validator_keys import sync_validator_keys  # noqa: E402
 from stakewise_cli.commands.sync_vault import sync_vault  # noqa: E402
+from stakewise_cli.commands.sync_web3signer_keys import (  # noqa: E402
+    sync_web3signer_keys,
+)
 from stakewise_cli.commands.upload_deposit_data import upload_deposit_data  # noqa: E402
 from stakewise_cli.commands.verify_deposit_data import verify_deposit_data  # noqa: E402
 from stakewise_cli.commands.verify_shard_pubkeys import (  # noqa: E402
@@ -34,6 +38,8 @@ cli.add_command(upload_deposit_data)
 cli.add_command(verify_deposit_data)
 cli.add_command(sync_vault)
 cli.add_command(sync_local)
+cli.add_command(sync_validator_keys)
+cli.add_command(sync_web3signer_keys)
 cli.add_command(sync_db)
 cli.add_command(create_shard_pubkeys)
 cli.add_command(verify_shard_pubkeys)

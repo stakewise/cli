@@ -1,6 +1,5 @@
 import click
 from eth_typing import ChecksumAddress
-from eth_utils import is_address, to_checksum_address
 from hvac import Client as VaultClient
 from hvac.exceptions import InvalidRequest
 from requests.exceptions import ConnectionError, HTTPError
@@ -17,6 +16,7 @@ from stakewise_cli.networks import (
 )
 from stakewise_cli.settings import VAULT_VALIDATORS_MOUNT_POINT
 from stakewise_cli.storages.vault import Vault
+from stakewise_cli.validators import validate_operator_address
 
 
 def get_vault_client() -> VaultClient:
@@ -31,16 +31,6 @@ def get_kubernetes_api_server() -> str:
         type=click.STRING,
     )
     return url
-
-
-def validate_operator_address(ctx, param, value):
-    try:
-        if is_address(value):
-            return to_checksum_address(value)
-    except ValueError:
-        pass
-
-    raise click.BadParameter("Invalid Ethereum address")
 
 
 @click.command(help="Synchronizes validator keystores in the vault")

@@ -26,4 +26,4 @@ repos:
     hooks:
       - id: mypy
         args: [--config-file=setup.cfg]
-        additional_dependencies: [types-requests==2.27.27]
+        additional_dependencies: [types-requests==2.27.27, types-pyyaml==6.0.8]

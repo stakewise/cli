@@ -1,9 +1,5 @@
-import re
-
 import click
-import psycopg2
 from eth_typing import ChecksumAddress
-from eth_utils import is_address, to_checksum_address
 
 from stakewise_cli.eth2 import validate_mnemonic
 from stakewise_cli.networks import (
@@ -13,24 +9,9 @@ from stakewise_cli.networks import (
     HARBOUR_MAINNET,
     MAINNET,
 )
-from stakewise_cli.storages.database import Database, get_db_connection
-
-
-def validate_operator_address(ctx, param, value):
-    try:
-        if is_address(value):
-            return to_checksum_address(value)
-    except ValueError:
-        pass
-
-    raise click.BadParameter("Invalid Ethereum address")
-
-
-def validate_db_uri(ctx, param, value):
-    pattern = re.compile(r".+:\/\/.+:.*@.+\/.+")
-    if not pattern.match(value):
-        raise click.BadParameter("Invalid database connection string")
-    return value
+from stakewise_cli.storages.database import Database, check_db_connection
+from stakewise_cli.validators import validate_db_uri, validate_operator_address
+from stakewise_cli.web3signer import Web3SignerManager
 
 
 @click.command(help="Synchronizes validator keystores in the database for web3signer")
@@ -57,44 +38,33 @@ def validate_db_uri(ctx, param, value):
     callback=validate_db_uri,
 )
 def sync_db(network: str, operator: ChecksumAddress, db_url: str) -> None:
-
-    # check connection
-    connection = get_db_connection(db_url=db_url)
-    try:
-        cur = connection.cursor()
-        cur.execute("SELECT 1")
-    except psycopg2.OperationalError as e:
-        raise click.ClickException(
-            f"Error: failed to connect to the database server with provided URL. Error details: {e}",
-        )
-
+    check_db_connection(db_url)
     mnemonic = click.prompt(
         'Enter your mnemonic separated by spaces (" ")',
         value_proc=validate_mnemonic,
         type=click.STRING,
         hide_input=True,
     )
-
     click.clear()
+
+    web3signer = Web3SignerManager(
+        operator=operator, network=network, mnemonic=mnemonic
+    )
     database = Database(
         db_url=db_url,
-        operator=operator,
-        network=network,
-        mnemonic=mnemonic,
     )
 
     click.confirm(
-        f"Synced {len(database.keys)} key pairs, apply changes to the database?",
+        f"Synced {len(web3signer.keys)} key pairs, apply changes to the database?",
         default=True,
         abort=True,
     )
-    database.apply_changes()
+    database.update_keys(keys=web3signer.keys)
 
     click.secho(
-        f"The database contains {len(database.keys)} validator keys.\n"
-        f'Please upgrade the "validators" helm chart with "validatorsCount" set to {database.validators_count}\n'
-        f'and "reimportKeystores" set to "true".\n'
-        f'Set "decryptionKey" to "{database.cipher_key_str}"',
+        f"The database contains {len(web3signer.keys)} validator keys.\n"
+        f"Please upgrade the 'validators' helm chart with 'validatorsCount' set to {web3signer.validators_count}\n"
+        f"Set 'DECRYPTION_KEY' env to '{web3signer.encoder.cipher_key_str}'",
         bold=True,
         fg="green",
     )
