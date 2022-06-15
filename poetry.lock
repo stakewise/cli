@@ -870,7 +870,7 @@ python-versions = "*"
 name = "pyyaml"
 version = "6.0"
 description = "YAML parser and emitter for Python"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 
@@ -1114,7 +1114,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.9"
-content-hash = "bd698df406e2b64dc119ce63973bac3401128af35e4c13798a48d23cf68d3045"
+content-hash = "588adce8eaf10f53ed20ee5c40a0619d7979027e9104f0e9d27e8a0cdeadc9d3"
 
 [metadata.files]
 aiodns = [
