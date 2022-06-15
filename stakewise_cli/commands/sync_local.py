@@ -2,7 +2,6 @@ import os
 
 import click
 from eth_typing import ChecksumAddress
-from eth_utils import is_address, to_checksum_address
 from requests.exceptions import ConnectionError, HTTPError
 from web3 import Web3
 
@@ -16,16 +15,7 @@ from stakewise_cli.networks import (
     NETWORKS,
 )
 from stakewise_cli.storages.local import LocalStorage
-
-
-def validate_operator_address(ctx, param, value):
-    try:
-        if is_address(value):
-            return to_checksum_address(value)
-    except ValueError:
-        pass
-
-    raise click.BadParameter("Invalid Ethereum address")
+from stakewise_cli.validators import validate_operator_address
 
 
 @click.command(help="Synchronizes validator keystores to the local folder")

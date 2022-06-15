@@ -3,7 +3,6 @@ from typing import Dict, List, Union
 import backoff
 import click
 from eth_typing import ChecksumAddress, HexStr
-from eth_utils import is_address, to_checksum_address
 from gql import Client as GqlClient
 from web3 import Web3
 
@@ -172,16 +171,6 @@ def get_block_timestamp(gql_client: GqlClient, block_number: int) -> Union[int, 
         return None
 
     return int(blocks[0]["timestamp"])
-
-
-def validate_operator_address(value):
-    try:
-        if is_address(value):
-            return to_checksum_address(value)
-    except ValueError:
-        pass
-
-    raise click.BadParameter("Invalid Ethereum address")
 
 
 def generate_specification(
