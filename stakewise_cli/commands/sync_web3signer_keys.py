@@ -50,7 +50,8 @@ def sync_web3signer_keys(db_url: str, output_dir: str, decryption_key_env: str) 
     private_keys: List[str] = []
     for key_record in keys_records:
         key = decoder.decrypt(data=key_record["private_key"], nonce=key_record["nonce"])
-        private_keys.append(Web3.toHex(int(key)))
+        hex = Web3.toHex(int(key))
+        private_keys.append(f"0x{hex[2:].zfill(64)}")  # pad missing leading zeros
 
     if not exists(output_dir):
         mkdir(output_dir)
