@@ -14,65 +14,59 @@ class Database:
 
     def update_keys(self, keys: List[DatabaseKeyRecord]) -> None:
         """Updates database records to new state."""
-        self.init_db()
-        self.save_to_db(keys)
+        with _get_db_connection(self.db_url) as conn:
+            with conn.cursor() as cur:
+                # recreate table
+                cur.execute(
+                    """
+                    DROP TABLE IF EXISTS keys;
+                    CREATE TABLE keys (
+                        public_key TEXT UNIQUE NOT NULL,
+                        private_key TEXT UNIQUE NOT NULL,
+                        nonce TEXT NOT NULL,
+                        validator_index TEXT NOT NULL)
+                    ;"""
+                )
 
-    def init_db(self) -> None:
-        conn = _get_db_connection(self.db_url)
-        cur = conn.cursor()
-        cur.execute(
-            """
-            DROP TABLE IF EXISTS keys;
-            CREATE TABLE keys (
-                public_key TEXT UNIQUE NOT NULL,
-                private_key TEXT UNIQUE NOT NULL,
-                nonce TEXT NOT NULL,
-                validator_index TEXT NOT NULL)
-            ;"""
-        )
-
-        conn.commit()
-        cur.close()
-        conn.close()
-
-    def save_to_db(self, keys: List[DatabaseKeyRecord]) -> None:
-        conn = _get_db_connection(self.db_url)
-        cur = conn.cursor()
-        execute_values(
-            cur,
-            "INSERT INTO keys (public_key, private_key, nonce, validator_index) VALUES %s",
-            [
-                (x["public_key"], x["private_key"], x["nonce"], x["validator_index"])
-                for x in keys
-            ],
-        )
-        conn.commit()
-        cur.close()
-        conn.close()
+                # insert keys
+                execute_values(
+                    cur,
+                    "INSERT INTO keys (public_key, private_key, nonce, validator_index) VALUES %s",
+                    [
+                        (
+                            x["public_key"],
+                            x["private_key"],
+                            x["nonce"],
+                            x["validator_index"],
+                        )
+                        for x in keys
+                    ],
+                )
 
     def fetch_public_keys_by_validator_index(self, validator_index: int) -> List[str]:
-        conn = _get_db_connection(self.db_url)
-        cur = conn.cursor()
-        cur.execute(
-            "select public_key from keys where validator_index= %s", (validator_index,)
-        )
-        rows = cur.fetchall()
-        return [row[0] for row in rows]
+        with _get_db_connection(self.db_url) as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "select public_key from keys where validator_index= %s",
+                    (validator_index,),
+                )
+                rows = cur.fetchall()
+                return [row[0] for row in rows]
 
     def fetch_keys(self) -> List[DatabaseKeyRecord]:
-        conn = _get_db_connection(self.db_url)
-        cur = conn.cursor()
-        cur.execute("select * from keys")
-        rows = cur.fetchall()
-        return [
-            DatabaseKeyRecord(
-                public_key=row[0],
-                private_key=row[1],
-                nonce=row[2],
-                validator_index=row[3],
-            )
-            for row in rows
-        ]
+        with _get_db_connection(self.db_url) as conn:
+            with conn.cursor() as cur:
+                cur.execute("select * from keys")
+                rows = cur.fetchall()
+                return [
+                    DatabaseKeyRecord(
+                        public_key=row[0],
+                        private_key=row[1],
+                        nonce=row[2],
+                        validator_index=row[3],
+                    )
+                    for row in rows
+                ]
 
 
 def check_db_connection(db_url):

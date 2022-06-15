@@ -6,6 +6,7 @@ from typing import List
 
 import click
 import yaml
+from web3 import Web3
 
 from stakewise_cli.encoder import Decoder
 from stakewise_cli.storages.database import Database, check_db_connection
@@ -49,7 +50,7 @@ def sync_web3signer_keys(db_url: str, output_dir: str, decryption_key_env: str) 
     private_keys: List[str] = []
     for key_record in keys_records:
         key = decoder.decrypt(data=key_record["private_key"], nonce=key_record["nonce"])
-        private_keys.append(key)
+        private_keys.append(Web3.toHex(int(key)))
 
     if not exists(output_dir):
         mkdir(output_dir)
