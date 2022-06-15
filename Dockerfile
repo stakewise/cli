@@ -64,5 +64,8 @@ COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
 # Copy source code
 COPY . ./
 
+# set env
+ENV PYTHONPATH="${PYTHONPATH}:/app"
+
 # Start application
-ENTRYPOINT ["python"]
+ENTRYPOINT ["python", "stakewise_cli/main.py"]
