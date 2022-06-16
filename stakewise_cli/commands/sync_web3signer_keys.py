@@ -58,7 +58,7 @@ def sync_web3signer_keys(db_url: str, output_dir: str, decryption_key_env: str) 
 
     # check current keys
     current_keys = []
-    for filename in glob.glob(os.path.join(output_dir, "*.yml")):
+    for filename in glob.glob(os.path.join(output_dir, "*.yaml")):
         with open(os.path.join(os.getcwd(), filename), "r") as f:
             content = yaml.safe_load(f.read())
             current_keys.append(content.get("privateKey"))
@@ -73,7 +73,7 @@ def sync_web3signer_keys(db_url: str, output_dir: str, decryption_key_env: str) 
 
     # save key files
     for index, private_key in enumerate(private_keys):
-        filename = f"key_{index}.yml"
+        filename = f"key_{index}.yaml"
         with open(os.path.join(output_dir, filename), "w") as f:
             f.write(_generate_key_file(private_key))
 
