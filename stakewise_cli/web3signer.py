@@ -1,3 +1,4 @@
+import math
 from functools import cached_property
 from typing import List, Set
 
@@ -11,7 +12,6 @@ from stakewise_cli.encoder import Encoder
 from stakewise_cli.eth1 import get_operator_deposit_data_ipfs_link
 from stakewise_cli.eth2 import get_mnemonic_signing_key
 from stakewise_cli.ipfs import ipfs_fetch
-from stakewise_cli.networks import NETWORKS
 from stakewise_cli.queries import get_stakewise_gql_client
 from stakewise_cli.settings import IS_LEGACY
 from stakewise_cli.typings import DatabaseKeyRecord
@@ -24,11 +24,12 @@ class Web3SignerManager:
         operator: ChecksumAddress,
         network: str,
         mnemonic: str,
+        validator_capacity: int,
     ):
         self.sw_gql_client = get_stakewise_gql_client(network)
         self.network = network
         self.mnemonic = mnemonic
-        self.max_keys_per_validator = NETWORKS[network]["MAX_KEYS_PER_VALIDATOR"]
+        self.validator_capacity = validator_capacity
         self.operator_address = operator
         self.encoder = Encoder()
 
@@ -62,7 +63,7 @@ class Web3SignerManager:
                     public_key=public_key,
                     private_key=bytes_to_str(encrypted_private_key),
                     nonce=bytes_to_str(nonce),
-                    validator_index=index // self.max_keys_per_validator,
+                    validator_index=index // self.validator_capacity,
                 )
 
                 if public_key in self.operator_deposit_data_public_keys:
@@ -79,7 +80,7 @@ class Web3SignerManager:
 
     @cached_property
     def validators_count(self) -> int:
-        return len(self.keys) // self.max_keys_per_validator
+        return math.ceil(len(self.keys) / self.validator_capacity)
 
     @cached_property
     def deposit_data_ipfs_link(self) -> str:
