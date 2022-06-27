@@ -39,8 +39,8 @@ from stakewise_cli.web3signer import Web3SignerManager
 )
 @click.option(
     "--validator-capacity",
-    help="Keys count per a validator.",
-    prompt="Enter keys count per a validator",
+    help="Keys count per validator.",
+    prompt="Enter keys count per validator",
     type=int,
     default=100,
 )
