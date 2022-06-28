@@ -37,7 +37,16 @@ from stakewise_cli.web3signer import Web3SignerManager
     prompt="Enter the database connection string, ex. 'postgresql://username:pass@hostname/dbname'",
     callback=validate_db_uri,
 )
-def sync_db(network: str, operator: ChecksumAddress, db_url: str) -> None:
+@click.option(
+    "--validator-capacity",
+    help="Keys count per validator.",
+    prompt="Enter keys count per validator",
+    type=int,
+    default=100,
+)
+def sync_db(
+    network: str, operator: ChecksumAddress, db_url: str, validator_capacity: int
+) -> None:
     check_db_connection(db_url)
     mnemonic = click.prompt(
         'Enter your mnemonic separated by spaces (" ")',
@@ -48,7 +57,10 @@ def sync_db(network: str, operator: ChecksumAddress, db_url: str) -> None:
     click.clear()
 
     web3signer = Web3SignerManager(
-        operator=operator, network=network, mnemonic=mnemonic
+        operator=operator,
+        network=network,
+        mnemonic=mnemonic,
+        validator_capacity=validator_capacity,
     )
     database = Database(
         db_url=db_url,
