@@ -64,7 +64,7 @@ class Web3SignerManager:
                 click.clear()
                 click.secho(f"Synced {index} key pairs...", bold=True)
 
-        public_keys = self.remove_exited_public_keys(public_keys)
+        self.remove_exited_public_keys(public_keys)
 
         click.secho("Generating private keys...", bold=True)
         deposit_data_key_records: List[DatabaseKeyRecord] = list()
@@ -113,9 +113,7 @@ class Web3SignerManager:
 
         return result
 
-    def remove_exited_public_keys(
-        self, keys: Dict[HexStr, SigningKey]
-    ) -> Dict[HexStr, SigningKey]:
+    def remove_exited_public_keys(self, keys: Dict[HexStr, SigningKey]) -> None:
         """Remove operator's public keys that have been exited."""
 
         # fetch validators in chunks of 100 keys
@@ -129,5 +127,3 @@ class Web3SignerManager:
                 if validator["status"] in EXITED_STATUSES:
                     public_key = validator["validator"]["pubkey"]
                     del keys[public_key]
-
-        return keys
