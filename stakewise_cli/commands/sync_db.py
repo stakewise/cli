@@ -79,7 +79,6 @@ def sync_db(
         'Enter your mnemonic separated by spaces (" ")',
         value_proc=validate_mnemonic,
         type=click.STRING,
-        hide_input=True,
     )
     click.clear()
 
