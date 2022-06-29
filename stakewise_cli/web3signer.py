@@ -4,7 +4,6 @@ from typing import List, Set
 
 import click
 from eth_typing import ChecksumAddress, HexStr
-from eth_utils import add_0x_prefix
 from py_ecc.bls import G2ProofOfPossession
 from web3 import Web3
 
@@ -45,20 +44,19 @@ class Web3SignerManager:
         deposit_data_key_records: List[DatabaseKeyRecord] = list()
         other_key_records: List[DatabaseKeyRecord] = list()
 
-        keys_count = len(self.operator_deposit_data_public_keys)
         index = 0
         click.secho("Syncing key pairs...", bold=True)
         while True:
             signing_key = get_mnemonic_signing_key(self.mnemonic, index, IS_LEGACY)
             public_key = Web3.toHex(G2ProofOfPossession.SkToPk(signing_key.key))
-            public_key = add_0x_prefix(public_key)
 
-            if len(deposit_data_key_records) >= keys_count:
+            if public_key not in self.operator_deposit_data_public_keys:
                 is_registered = is_validator_registered(
                     gql_client=self.eth_gql_client, public_key=public_key
                 )
                 if not is_registered:
                     break
+
             private_key = str(signing_key.key)
             encrypted_private_key, nonce = self.encoder.encrypt(private_key)
 
