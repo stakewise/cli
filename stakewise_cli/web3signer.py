@@ -1,22 +1,24 @@
 import math
+from collections import OrderedDict
 from functools import cached_property
-from typing import List, Set
+from typing import Dict, List, Set
 
 import click
 from eth_typing import ChecksumAddress, HexStr
 from py_ecc.bls import G2ProofOfPossession
 from web3 import Web3
+from web3.beacon import Beacon
 
 from stakewise_cli.encoder import Encoder
 from stakewise_cli.eth1 import (
     get_operator_deposit_data_ipfs_link,
     is_validator_registered,
 )
-from stakewise_cli.eth2 import get_mnemonic_signing_key
+from stakewise_cli.eth2 import EXITED_STATUSES, get_mnemonic_signing_key, get_validators
 from stakewise_cli.ipfs import ipfs_fetch
 from stakewise_cli.queries import get_ethereum_gql_client, get_stakewise_gql_client
 from stakewise_cli.settings import IS_LEGACY
-from stakewise_cli.typings import DatabaseKeyRecord
+from stakewise_cli.typings import DatabaseKeyRecord, SigningKey
 from stakewise_cli.utils import bytes_to_str
 
 
@@ -27,9 +29,11 @@ class Web3SignerManager:
         network: str,
         mnemonic: str,
         validator_capacity: int,
+        beacon: Beacon,
     ):
         self.sw_gql_client = get_stakewise_gql_client(network)
         self.eth_gql_client = get_ethereum_gql_client(network)
+        self.beacon = beacon
         self.network = network
         self.mnemonic = mnemonic
         self.validator_capacity = validator_capacity
@@ -41,22 +45,30 @@ class Web3SignerManager:
         """
         Returns prepared database key records from the latest deposit data or already registered.
         """
-        deposit_data_key_records: List[DatabaseKeyRecord] = list()
-        other_key_records: List[DatabaseKeyRecord] = list()
+        public_keys: Dict[HexStr, SigningKey] = OrderedDict()
 
         index = 0
         click.secho("Syncing key pairs...", bold=True)
         while True:
             signing_key = get_mnemonic_signing_key(self.mnemonic, index, IS_LEGACY)
             public_key = Web3.toHex(G2ProofOfPossession.SkToPk(signing_key.key))
-
             if public_key not in self.operator_deposit_data_public_keys:
                 is_registered = is_validator_registered(
                     gql_client=self.eth_gql_client, public_key=public_key
                 )
                 if not is_registered:
                     break
+            public_keys[public_key] = signing_key
+            index += 1
+            if not (index % 10):
+                click.clear()
+                click.secho(f"Synced {index} key pairs...", bold=True)
 
+        public_keys = self.remove_exited_public_keys(public_keys)
+
+        click.secho("Generating private keys...", bold=True)
+        deposit_data_key_records: List[DatabaseKeyRecord] = list()
+        for public_key, signing_key in public_keys.items():
             private_key = str(signing_key.key)
             encrypted_private_key, nonce = self.encoder.encrypt(private_key)
 
@@ -67,19 +79,10 @@ class Web3SignerManager:
                 validator_index=index // self.validator_capacity,
             )
 
-            if public_key in self.operator_deposit_data_public_keys:
-                if key_record not in deposit_data_key_records:
-                    deposit_data_key_records.append(key_record)
-            else:
-                if key_record not in other_key_records:
-                    other_key_records.append(key_record)
+            if key_record not in deposit_data_key_records:
+                deposit_data_key_records.append(key_record)
 
-            index += 1
-            if not (index % 10):
-                click.clear()
-                click.secho(f"Synced {index} key pairs...", bold=True)
-
-        return other_key_records + deposit_data_key_records
+        return deposit_data_key_records
 
     @cached_property
     def validators_count(self) -> int:
@@ -109,3 +112,22 @@ class Web3SignerManager:
             result.add(public_key)
 
         return result
+
+    def remove_exited_public_keys(
+        self, keys: Dict[HexStr, SigningKey]
+    ) -> Dict[HexStr, SigningKey]:
+        """Remove operator's public keys that have been exited."""
+
+        # fetch validators in chunks of 100 keys
+        for i in range(0, len(keys), 100):
+            validators = get_validators(
+                beacon=self.beacon,
+                public_keys=list(keys.keys())[i : i + 100],
+                state_id="finalized",
+            )
+            for validator in validators:
+                if validator["status"] in EXITED_STATUSES:
+                    public_key = validator["validator"]["pubkey"]
+                    del keys[public_key]
+
+        return keys
