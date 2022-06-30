@@ -68,6 +68,7 @@ class Web3SignerManager:
 
         click.secho("Generating private keys...", bold=True)
         deposit_data_key_records: List[DatabaseKeyRecord] = list()
+        index = 0
         for public_key, signing_key in public_keys.items():
             private_key = str(signing_key.key)
             encrypted_private_key, nonce = self.encoder.encrypt(private_key)
@@ -81,6 +82,7 @@ class Web3SignerManager:
 
             if key_record not in deposit_data_key_records:
                 deposit_data_key_records.append(key_record)
+                index += 1
 
         return deposit_data_key_records
 
