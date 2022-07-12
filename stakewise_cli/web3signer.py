@@ -57,7 +57,9 @@ class Web3SignerManager:
                     gql_client=self.eth_gql_client, public_key=public_key
                 )
                 if not is_registered:
-                    break
+                    if index >= len(self.operator_deposit_data_public_keys):
+                        break
+                    continue
             public_keys[public_key] = signing_key
             index += 1
             if not (index % 10):
