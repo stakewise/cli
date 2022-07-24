@@ -10,6 +10,7 @@ from eth_typing import BLSPubkey, BLSSignature, HexStr
 from eth_utils import add_0x_prefix
 from gql import Client
 from py_ecc.bls import G2ProofOfPossession
+from requests.exceptions import ConnectionError, HTTPError
 from staking_deposit.key_handling.key_derivation.mnemonic import (
     get_mnemonic,
     get_seed,
@@ -32,6 +33,7 @@ from web3.beacon import Beacon
 from web3.types import Wei
 
 from stakewise_cli.merkle_tree import MerkleTree
+from stakewise_cli.networks import NETWORKS
 from stakewise_cli.queries import REGISTRATIONS_QUERY
 from stakewise_cli.settings import IS_LEGACY
 from stakewise_cli.typings import (
@@ -80,6 +82,31 @@ EXITED_STATUSES = [
     ValidatorStatus.WITHDRAWAL_POSSIBLE,
     ValidatorStatus.WITHDRAWAL_DONE,
 ]
+
+
+def prompt_beacon_client(network: str) -> Beacon:
+    while True:
+        try:
+            beacon_client = get_beacon_client(network)
+            genesis = beacon_client.get_genesis()
+            if genesis["data"]["genesis_fork_version"] != Web3.toHex(
+                NETWORKS[network]["GENESIS_FORK_VERSION"]
+            ):
+                click.secho(
+                    "Error: invalid beacon node network",
+                    bold=True,
+                    fg="red",
+                )
+                continue
+            return beacon_client
+        except (ConnectionError, HTTPError):
+            pass
+
+        click.secho(
+            "Error: failed to connect to the ETH2 server with provided URL",
+            bold=True,
+            fg="red",
+        )
 
 
 def get_beacon_client(network: str) -> Beacon:

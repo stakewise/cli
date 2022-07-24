@@ -2,17 +2,14 @@ import os
 
 import click
 from eth_typing import ChecksumAddress
-from requests.exceptions import ConnectionError, HTTPError
-from web3 import Web3
 
-from stakewise_cli.eth2 import get_beacon_client, validate_mnemonic
+from stakewise_cli.eth2 import validate_mnemonic
 from stakewise_cli.networks import (
     GNOSIS_CHAIN,
     GOERLI,
     HARBOUR_GOERLI,
     HARBOUR_MAINNET,
     MAINNET,
-    NETWORKS,
 )
 from stakewise_cli.storages.local import LocalStorage
 from stakewise_cli.validators import validate_operator_address
@@ -42,29 +39,6 @@ from stakewise_cli.validators import validate_operator_address
     type=click.Path(exists=False, file_okay=False, dir_okay=True),
 )
 def sync_local(network: str, operator: ChecksumAddress, folder: str) -> None:
-    while True:
-        try:
-            beacon_client = get_beacon_client(network)
-            genesis = beacon_client.get_genesis()
-            if genesis["data"]["genesis_fork_version"] != Web3.toHex(
-                NETWORKS[network]["GENESIS_FORK_VERSION"]
-            ):
-                click.secho(
-                    "Error: invalid beacon node network",
-                    bold=True,
-                    fg="red",
-                )
-                continue
-            break
-        except (ConnectionError, HTTPError):
-            pass
-
-        click.secho(
-            "Error: failed to connect to the ETH2 server with provided URL",
-            bold=True,
-            fg="red",
-        )
-
     mnemonic = click.prompt(
         'Enter your mnemonic separated by spaces (" ")',
         value_proc=validate_mnemonic,

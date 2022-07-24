@@ -2,17 +2,15 @@ import click
 from eth_typing import ChecksumAddress
 from hvac import Client as VaultClient
 from hvac.exceptions import InvalidRequest
-from requests.exceptions import ConnectionError, HTTPError
-from web3 import Web3
+from requests.exceptions import ConnectionError
 
-from stakewise_cli.eth2 import get_beacon_client, validate_mnemonic
+from stakewise_cli.eth2 import prompt_beacon_client, validate_mnemonic
 from stakewise_cli.networks import (
     GNOSIS_CHAIN,
     GOERLI,
     HARBOUR_GOERLI,
     HARBOUR_MAINNET,
     MAINNET,
-    NETWORKS,
 )
 from stakewise_cli.settings import VAULT_VALIDATORS_MOUNT_POINT
 from stakewise_cli.storages.vault import Vault
@@ -65,28 +63,7 @@ def sync_vault(network: str, operator: ChecksumAddress) -> None:
             fg="red",
         )
 
-    while True:
-        try:
-            beacon_client = get_beacon_client(network)
-            genesis = beacon_client.get_genesis()
-            if genesis["data"]["genesis_fork_version"] != Web3.toHex(
-                NETWORKS[network]["GENESIS_FORK_VERSION"]
-            ):
-                click.secho(
-                    "Error: invalid beacon node network",
-                    bold=True,
-                    fg="red",
-                )
-                continue
-            break
-        except (ConnectionError, HTTPError):
-            pass
-
-        click.secho(
-            "Error: failed to connect to the ETH2 server with provided URL",
-            bold=True,
-            fg="red",
-        )
+    beacon_client = prompt_beacon_client(network)
 
     vault_client.secrets.kv.default_kv_version = 1
     try:
