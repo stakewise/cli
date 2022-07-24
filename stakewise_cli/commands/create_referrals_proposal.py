@@ -23,9 +23,8 @@ from stakewise_cli.queries import get_ethereum_gql_client, get_stakewise_gql_cli
 w3 = Web3()
 
 
-MAX_SWISE_PER_REFERRAL = 1000000 * Web3.toWei(1, "ether")
 MAX_SWISE_PER_WEI = 250
-MIN_SWISE_PER_WEI = 5 / Web3.toWei(1, "ether")
+MIN_SWISE_PER_WEI = 5
 
 
 @click.command(
@@ -158,10 +157,6 @@ def create_referrals_proposal(
 
     if not referrals:
         raise click.ClickException("No referrals for the specified period. Exiting...")
-    for referrer in referrals:
-        referrals[referrer][token_address] = min(
-            [referrals[referrer][token_address], MAX_SWISE_PER_REFERRAL]
-        )
 
     # 2. Upload referrals data to IPFS
     ipfs_url = upload_to_ipfs(referrals)
