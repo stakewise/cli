@@ -23,7 +23,7 @@ from stakewise_cli.networks import (
     NETWORKS,
 )
 from stakewise_cli.queries import get_ethereum_gql_client, get_stakewise_gql_client
-from stakewise_cli.validators import validate_operator_address
+from stakewise_cli.validators import validate_operator_address_prompt
 
 
 @click.command(help="Creates deposit data and generates a forum post specification")
@@ -89,7 +89,7 @@ def create_deposit_data(
     operator = click.prompt(
         "Enter the wallet address that will receive rewards."
         " If you already run StakeWise validators, please re-use the same wallet address",
-        value_proc=validate_operator_address,
+        value_proc=validate_operator_address_prompt,
     )
 
     # 4. Generate private key shares for the committee

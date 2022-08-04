@@ -21,7 +21,7 @@ from stakewise_cli.networks import (
 )
 from stakewise_cli.queries import get_ethereum_gql_client, get_stakewise_gql_client
 from stakewise_cli.typings import Bytes4, Bytes32, Gwei, MerkleDepositData
-from stakewise_cli.validators import validate_operator_address
+from stakewise_cli.validators import validate_operator_address_prompt
 
 w3 = Web3()
 
@@ -204,7 +204,7 @@ def upload_deposit_data(network: str, path: str) -> None:
     operator = click.prompt(
         "Enter the wallet address that will receive rewards."
         " If you already run StakeWise validators, please re-use the same wallet address",
-        value_proc=validate_operator_address,
+        value_proc=validate_operator_address_prompt,
     )
     specification = generate_specification(
         merkle_root=merkle_root,
