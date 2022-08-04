@@ -23,6 +23,10 @@ from stakewise_cli.queries import get_ethereum_gql_client, get_stakewise_gql_cli
 w3 = Web3()
 
 
+MAX_SWISE_PER_WEI = 250
+MIN_SWISE_PER_WEI = 5
+
+
 @click.command(
     help="Creates referral proposal and generates a forum post specification"
 )
@@ -51,10 +55,10 @@ w3 = Web3()
     type=int,
 )
 @click.option(
-    "--referrals-share",
+    "--referral-share",
     required=True,
-    prompt="Enter referrals share (%), ex. 1.5 = 1.5%",
-    help="Referrals share (%), ex. 1.5 = 1.5%",
+    prompt="Enter referral share (%), ex. 1.5 = 1.5%",
+    help="Referral share (%), ex. 1.5 = 1.5%",
     type=decimal.Decimal,
 )
 @click.option(
@@ -77,7 +81,7 @@ def create_referrals_proposal(
     network: str,
     from_block: int,
     to_block: int,
-    referrals_share: decimal.Decimal,
+    referral_share: decimal.Decimal,
     swise_price: decimal.Decimal,
     eth_price: decimal.Decimal,
     whitelist_path: str,
@@ -90,10 +94,12 @@ def create_referrals_proposal(
     w3 = get_web3_client(network)
 
     ethereum_gql_client = get_ethereum_gql_client(network)
-    from_date = get_block_timestamp(
+    from_date: int = get_block_timestamp(
         gql_client=ethereum_gql_client, block_number=from_block
     )
-    to_date = get_block_timestamp(gql_client=ethereum_gql_client, block_number=to_block)
+    to_date: int = get_block_timestamp(
+        gql_client=ethereum_gql_client, block_number=to_block
+    )
 
     if not from_date:
         raise click.ClickException(
@@ -134,11 +140,17 @@ def create_referrals_proposal(
     for item in referrals_data:
         referrer = Web3.toChecksumAddress(item["referrer"])
         if referrer not in whitelisted_addresses:
+            click.secho(
+                f"Address {referrer} is not in whitelist",
+                fg="yellow",
+            )
             continue
 
         amount = int(
-            (int(item["amount"]) * eth_price * referrals_share) / (100 * swise_price)
+            (int(item["amount"]) * eth_price * referral_share) / (100 * swise_price)
         )
+        amount = min(MAX_SWISE_PER_WEI * int(item["amount"]), amount)
+        amount = max(MIN_SWISE_PER_WEI * int(item["amount"]), amount)
         total_amount += amount
         referrals.setdefault(referrer, {}).setdefault(token_address, 0)
         referrals[referrer][token_address] += amount
@@ -158,7 +170,7 @@ def create_referrals_proposal(
         swise_price=swise_price,
         eth_price=eth_price,
         ipfs_url=ipfs_url,
-        referral_share=referrals_share,
+        referral_share=referral_share,
     )
     click.clear()
     click.secho(
