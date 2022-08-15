@@ -95,6 +95,9 @@ def sync_validator_keys(
 
 
 def _generate_lighthouse_config(public_keys: List[str], web3signer_url: str) -> str:
+    """
+    Generate config for Lighthouse clients
+    """
     items = [
         {
             "enabled": True,
@@ -109,6 +112,9 @@ def _generate_lighthouse_config(public_keys: List[str], web3signer_url: str) -> 
 
 
 def _generate_signer_keys_config(public_keys: List[str]) -> str:
+    """
+    Generate config for Teku and Prysm clients
+    """
     items = [{"validators-external-signer-public-keys": public_keys}]
 
     return yaml.dump(items).replace("'", "")[2:]
