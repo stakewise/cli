@@ -13,6 +13,7 @@ from stakewise_cli.validators import validate_db_uri, validate_env_name
 
 PUBLIC_KEYS_CSV_FILENAME = "validator_keys.csv"
 LIGHTHOUSE_CONFIG_FILENAME = "validator_definitions.yml"
+SIGNER_CONFIG_FILENAME = "signer_keys.yml"
 WEB3SIGNER_URL_ENV = "WEB3SIGNER_URL"
 
 
@@ -81,6 +82,11 @@ def sync_validator_keys(
     with open(join(output_dir, LIGHTHOUSE_CONFIG_FILENAME), "w") as f:
         f.write(lighthouse_config)
 
+    # save external signer public keys
+    signer_keys_config = _generate_signer_keys_config(public_keys=keys)
+    with open(join(output_dir, SIGNER_CONFIG_FILENAME), "w") as f:
+        f.write(signer_keys_config)
+
     click.secho(
         f"The validator now uses {len(keys)} public keys.\n",
         bold=True,
@@ -89,6 +95,9 @@ def sync_validator_keys(
 
 
 def _generate_lighthouse_config(public_keys: List[str], web3signer_url: str) -> str:
+    """
+    Generate config for Lighthouse clients
+    """
     items = [
         {
             "enabled": True,
@@ -100,3 +109,12 @@ def _generate_lighthouse_config(public_keys: List[str], web3signer_url: str) -> 
     ]
 
     return yaml.dump(items, explicit_start=True)
+
+
+def _generate_signer_keys_config(public_keys: List[str]) -> str:
+    """
+    Generate config for Teku and Prysm clients
+    """
+    items = [{"validators-external-signer-public-keys": public_keys}]
+
+    return yaml.dump(items).replace("'", "")[2:]
