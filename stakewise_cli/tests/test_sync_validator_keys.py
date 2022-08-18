@@ -13,7 +13,7 @@ from stakewise_cli.eth2 import WORD_LISTS_PATH, get_mnemonic_signing_key
 w3 = Web3()
 
 mnemonic = get_mnemonic(language="english", words_path=WORD_LISTS_PATH)
-keys_count = 5
+keys_count = 3
 web3_signer_url = "http://web3signer:6174"
 
 
@@ -67,15 +67,10 @@ class TestCommand(unittest.TestCase):
                 s += "\n"
                 assert f.read() == s
 
-            with open("./valdata/validator_keys.csv") as f:
-                s = ",".join(public_keys) + "\n"
-                assert f.read() == s
-
             with open("./valdata/signer_keys.yml") as f:
-                s = """validators-external-signer-public-keys:\n"""
-                for public_key in public_keys:
-                    s += f"  - {public_key}\n"
-                assert f.read() == s
+                s = f"""validators-external-signer-public-keys: ["{public_keys[0]}","{public_keys[1]}","{public_keys[2]}"]"""
+                ff = f.read()
+                assert ff == s, (ff, s)
 
             result = runner.invoke(sync_validator_keys, args)
             assert result.exit_code == 0
