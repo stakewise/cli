@@ -1,4 +1,3 @@
-import csv
 import os
 from os import mkdir
 from os.path import exists, join
@@ -56,11 +55,10 @@ def sync_validator_keys(
         mkdir(output_dir)
 
     # check current public keys CSV
-    csv_filename = join(output_dir, PUBLIC_KEYS_CSV_FILENAME)
-    if exists(csv_filename):
-        with open(csv_filename) as f:
-            reader = csv.reader(f)
-            current_keys = list(reader)[0]
+    lighthouse_filename = join(output_dir, LIGHTHOUSE_CONFIG_FILENAME)
+    if exists(lighthouse_filename):
+        with open(lighthouse_filename) as f:
+            current_keys = _load_lighthouse_config(f)
         if is_lists_equal(keys, current_keys):
             click.secho(
                 "Keys already synced to the last version.\n",
@@ -68,11 +66,6 @@ def sync_validator_keys(
                 fg="green",
             )
             return
-
-    # save CSV file
-    with open(csv_filename, "w") as f:
-        writer = csv.writer(f)
-        writer.writerow(keys)
 
     # save lighthouse config
     web3signer_url = os.environ[web3signer_url_env]
@@ -82,7 +75,7 @@ def sync_validator_keys(
     with open(join(output_dir, LIGHTHOUSE_CONFIG_FILENAME), "w") as f:
         f.write(lighthouse_config)
 
-    # save external signer public keys
+    # save teku/prysm config
     signer_keys_config = _generate_signer_keys_config(public_keys=keys)
     with open(join(output_dir, SIGNER_CONFIG_FILENAME), "w") as f:
         f.write(signer_keys_config)
@@ -111,10 +104,20 @@ def _generate_lighthouse_config(public_keys: List[str], web3signer_url: str) -> 
     return yaml.dump(items, explicit_start=True)
 
 
+def _load_lighthouse_config(file) -> List[str]:
+    """
+    Load config for Lighthouse clients
+    """
+    try:
+        items = yaml.safe_load(file)
+        return [item.get("voting_public_key") for item in items]
+    except yaml.YAMLError:
+        return []
+
+
 def _generate_signer_keys_config(public_keys: List[str]) -> str:
     """
     Generate config for Teku and Prysm clients
     """
-    items = [{"validators-external-signer-public-keys": public_keys}]
-
-    return yaml.dump(items).replace("'", "")[2:]
+    keys = ",".join([f'"{public_key}"' for public_key in public_keys])
+    return f"""validators-external-signer-public-keys: [{keys}]"""
