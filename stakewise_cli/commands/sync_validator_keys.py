@@ -1,11 +1,13 @@
+import json
 import os
 from os import mkdir
 from os.path import exists, join
-from typing import List
+from typing import Dict, List
 
 import click
 import yaml
 
+from stakewise_cli.networks import MAINNET, NETWORKS
 from stakewise_cli.storages.database import Database, check_db_connection
 from stakewise_cli.utils import is_lists_equal
 from stakewise_cli.validators import validate_db_uri, validate_env_name
@@ -13,10 +15,21 @@ from stakewise_cli.validators import validate_db_uri, validate_env_name
 PUBLIC_KEYS_CSV_FILENAME = "validator_keys.csv"
 LIGHTHOUSE_CONFIG_FILENAME = "validator_definitions.yml"
 SIGNER_CONFIG_FILENAME = "signer_keys.yml"
+SIGNER_PROPOSER_CONFIG_FILENAME = "proposerConfig.json"
 WEB3SIGNER_URL_ENV = "WEB3SIGNER_URL"
 
 
 @click.command(help="Synchronizes validator public keys from the database")
+@click.option(
+    "--network",
+    default=MAINNET,
+    help="The network to generate the deposit data for",
+    prompt="Enter the network name",
+    type=click.Choice(
+        NETWORKS.keys(),
+        case_sensitive=False,
+    ),
+)
 @click.option(
     "--db-url",
     help="The database connection address.",
@@ -39,8 +52,18 @@ WEB3SIGNER_URL_ENV = "WEB3SIGNER_URL"
     default=WEB3SIGNER_URL_ENV,
     callback=validate_env_name,
 )
+@click.option(
+    "--solo-fees-file",
+    help="The path to solo validator's fee distribution path",
+    type=click.Path(exists=True, file_okay=True, dir_okay=False),
+)
 def sync_validator_keys(
-    db_url: str, index: int, output_dir: str, web3signer_url_env: str
+    network: str,
+    db_url: str,
+    index: int,
+    output_dir: str,
+    web3signer_url_env: str,
+    solo_fees_file: str,
 ) -> None:
     """
     The command is running by the init container in validator pods.
@@ -67,10 +90,19 @@ def sync_validator_keys(
             )
             return
 
+    default_fee_recipient = NETWORKS[network]["FEE_DISTRIBUTION_CONTRACT_ADDRESS"]
+    solo_fee_mapping = {}
+    if solo_fees_file:
+        with open(solo_fees_file) as f:
+            solo_fee_mapping = json.load(f)
+
     # save lighthouse config
     web3signer_url = os.environ[web3signer_url_env]
     lighthouse_config = _generate_lighthouse_config(
-        public_keys=keys, web3signer_url=web3signer_url
+        public_keys=keys,
+        web3signer_url=web3signer_url,
+        default_fee_recipient=default_fee_recipient,
+        solo_fee_mapping=solo_fee_mapping,
     )
     with open(join(output_dir, LIGHTHOUSE_CONFIG_FILENAME), "w") as f:
         f.write(lighthouse_config)
@@ -79,6 +111,12 @@ def sync_validator_keys(
     signer_keys_config = _generate_signer_keys_config(public_keys=keys)
     with open(join(output_dir, SIGNER_CONFIG_FILENAME), "w") as f:
         f.write(signer_keys_config)
+    proposer_config = _generate_proposer_config(
+        default_fee_recipient=default_fee_recipient,
+        solo_fee_mapping=solo_fee_mapping,
+    )
+    with open(join(output_dir, SIGNER_PROPOSER_CONFIG_FILENAME), "w") as f:
+        f.write(proposer_config)
 
     click.secho(
         f"The validator now uses {len(keys)} public keys.\n",
@@ -87,7 +125,12 @@ def sync_validator_keys(
     )
 
 
-def _generate_lighthouse_config(public_keys: List[str], web3signer_url: str) -> str:
+def _generate_lighthouse_config(
+    public_keys: List[str],
+    web3signer_url: str,
+    default_fee_recipient: str,
+    solo_fee_mapping: Dict[str, str],
+) -> str:
     """
     Generate config for Lighthouse clients
     """
@@ -97,6 +140,9 @@ def _generate_lighthouse_config(public_keys: List[str], web3signer_url: str) -> 
             "voting_public_key": public_key,
             "type": "web3signer",
             "url": web3signer_url,
+            "suggested_fee_recipient": solo_fee_mapping.get(
+                public_key, default_fee_recipient
+            ),
         }
         for public_key in public_keys
     ]
@@ -121,3 +167,31 @@ def _generate_signer_keys_config(public_keys: List[str]) -> str:
     """
     keys = ",".join([f'"{public_key}"' for public_key in public_keys])
     return f"""validators-external-signer-public-keys: [{keys}]"""
+
+
+def _generate_proposer_config(
+    default_fee_recipient: str, solo_fee_mapping: Dict[str, str]
+) -> str:
+    """
+    Generate config for Teku and Prysm clients
+    """
+    config = {
+        "proposer_config": {
+            **{
+                public_key: {
+                    "fee_recipient": fee_recipient,
+                    "builder": {
+                        "enabled": True,
+                    },
+                }
+                for public_key, fee_recipient in solo_fee_mapping.items()
+            }
+        },
+        "default_config": {
+            "fee_recipient": default_fee_recipient,
+            "builder": {
+                "enabled": True,
+            },
+        },
+    }
+    return json.dumps(config)

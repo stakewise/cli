@@ -9,6 +9,9 @@ from web3 import Web3
 
 from stakewise_cli.commands.sync_validator_keys import sync_validator_keys
 from stakewise_cli.eth2 import WORD_LISTS_PATH, get_mnemonic_signing_key
+from stakewise_cli.networks import MAINNET, NETWORKS
+
+from .factories import faker
 
 w3 = Web3()
 
@@ -38,17 +41,25 @@ public_keys = get_public_keys(mnemonic=mnemonic, keys_count=keys_count)
 class TestCommand(unittest.TestCase):
     def test_sync_validator_keys(self, *mocks):
         db_url = "postgresql://username:pass@hostname/dbname"
+        network = MAINNET
         index = 1
         runner = CliRunner()
+        solo_pub_key, solo_address = faker.public_key(), faker.eth_address()
         args = [
+            "--network",
+            network,
             "--index",
             index,
             "--db-url",
             db_url,
             "--output-dir",
             "./valdata",
+            "--solo-fees-file",
+            "./solo-fees.json",
         ]
         with runner.isolated_filesystem():
+            with open("./solo-fees.json", "w") as f:
+                f.writelines('{"%s":"%s"}' % (solo_pub_key, solo_address))
             result = runner.invoke(sync_validator_keys, args)
             assert result.exit_code == 0
 
@@ -56,11 +67,13 @@ class TestCommand(unittest.TestCase):
                 f"The validator now uses {keys_count} public keys."
                 == result.output.strip()
             )
+
             with open("./valdata/validator_definitions.yml") as f:
                 s = """---"""
                 for public_key in public_keys:
                     s += f"""
 - enabled: true
+  suggested_fee_recipient: \'{NETWORKS[network]["FEE_DISTRIBUTION_CONTRACT_ADDRESS"]}\'
   type: web3signer
   url: {web3_signer_url}
   voting_public_key: \'{public_key}\'"""
@@ -70,6 +83,19 @@ class TestCommand(unittest.TestCase):
             with open("./valdata/signer_keys.yml") as f:
                 s = f"""validators-external-signer-public-keys: ["{public_keys[0]}","{public_keys[1]}","{public_keys[2]}"]"""
                 ff = f.read()
+                assert ff == s, (ff, s)
+
+            with open("./valdata/proposerConfig.json") as f:
+                s = (
+                    '{"proposer_config": {"%s": {"fee_recipient": "%s", "builder": {"enabled": true}}}, "default_config": {"fee_recipient": "%s", "builder": {"enabled": true}}}'
+                    % (
+                        solo_pub_key,
+                        solo_address,
+                        NETWORKS[network]["FEE_DISTRIBUTION_CONTRACT_ADDRESS"],
+                    )
+                )
+                ff = f.read()
+
                 assert ff == s, (ff, s)
 
             result = runner.invoke(sync_validator_keys, args)
