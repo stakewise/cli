@@ -6,6 +6,9 @@ HARBOUR_MAINNET = "harbour_mainnet"
 HARBOUR_GOERLI = "harbour_goerli"
 GNOSIS_CHAIN = "gnosis"
 
+# aliases
+PRATER = "prater"
+
 NETWORKS = {
     MAINNET: dict(
         STAKEWISE_SUBGRAPH_URL=config(
@@ -136,3 +139,8 @@ NETWORKS = {
         IS_POA=True,
     ),
 }
+
+# Alias
+NETWORKS[PRATER] = NETWORKS[GOERLI]
+
+AVAILABLE_NETWORKS = NETWORKS.keys()

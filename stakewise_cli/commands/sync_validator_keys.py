@@ -7,7 +7,7 @@ from typing import Dict, List
 import click
 import yaml
 
-from stakewise_cli.networks import MAINNET, NETWORKS
+from stakewise_cli.networks import AVAILABLE_NETWORKS, MAINNET, NETWORKS
 from stakewise_cli.storages.database import Database, check_db_connection
 from stakewise_cli.utils import is_lists_equal
 from stakewise_cli.validators import validate_db_uri, validate_env_name
@@ -26,7 +26,7 @@ WEB3SIGNER_URL_ENV = "WEB3SIGNER_URL"
     help="The network to generate the deposit data for",
     prompt="Enter the network name",
     type=click.Choice(
-        NETWORKS.keys(),
+        AVAILABLE_NETWORKS,
         case_sensitive=False,
     ),
 )

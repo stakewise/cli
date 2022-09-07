@@ -5,13 +5,7 @@ from hvac.exceptions import InvalidRequest
 from requests.exceptions import ConnectionError
 
 from stakewise_cli.eth2 import prompt_beacon_client, validate_mnemonic
-from stakewise_cli.networks import (
-    GNOSIS_CHAIN,
-    GOERLI,
-    HARBOUR_GOERLI,
-    HARBOUR_MAINNET,
-    MAINNET,
-)
+from stakewise_cli.networks import AVAILABLE_NETWORKS, MAINNET
 from stakewise_cli.settings import VAULT_VALIDATORS_MOUNT_POINT
 from stakewise_cli.storages.vault import Vault
 from stakewise_cli.validators import validate_operator_address
@@ -38,7 +32,7 @@ def get_kubernetes_api_server() -> str:
     help="The network of ETH2 you are targeting.",
     prompt="Please choose the network name",
     type=click.Choice(
-        [MAINNET, GOERLI, HARBOUR_MAINNET, HARBOUR_GOERLI, GNOSIS_CHAIN],
+        AVAILABLE_NETWORKS,
         case_sensitive=False,
     ),
 )

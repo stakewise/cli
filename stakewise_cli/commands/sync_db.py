@@ -2,13 +2,7 @@ import click
 from eth_typing import ChecksumAddress
 
 from stakewise_cli.eth2 import prompt_beacon_client, validate_mnemonic
-from stakewise_cli.networks import (
-    GNOSIS_CHAIN,
-    GOERLI,
-    HARBOUR_GOERLI,
-    HARBOUR_MAINNET,
-    MAINNET,
-)
+from stakewise_cli.networks import AVAILABLE_NETWORKS, MAINNET
 from stakewise_cli.storages.database import Database, check_db_connection
 from stakewise_cli.validators import validate_db_uri, validate_operator_address
 from stakewise_cli.web3signer import Web3SignerManager
@@ -21,7 +15,7 @@ from stakewise_cli.web3signer import Web3SignerManager
     help="The network you are targeting.",
     prompt="Please choose the network name",
     type=click.Choice(
-        [MAINNET, GOERLI, HARBOUR_MAINNET, HARBOUR_GOERLI, GNOSIS_CHAIN],
+        AVAILABLE_NETWORKS,
         case_sensitive=False,
     ),
 )
