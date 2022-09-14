@@ -8,14 +8,7 @@ from web3 import Web3
 from stakewise_cli.eth2 import get_deposit_data_roots, get_registered_public_keys
 from stakewise_cli.ipfs import ipfs_fetch
 from stakewise_cli.merkle_tree import MerkleTree
-from stakewise_cli.networks import (
-    GNOSIS_CHAIN,
-    GOERLI,
-    HARBOUR_GOERLI,
-    HARBOUR_MAINNET,
-    MAINNET,
-    NETWORKS,
-)
+from stakewise_cli.networks import AVAILABLE_NETWORKS, MAINNET, NETWORKS
 from stakewise_cli.queries import get_ethereum_gql_client
 from stakewise_cli.typings import Bytes32, Gwei
 
@@ -32,7 +25,7 @@ deposit_amount_gwei = Gwei(int(w3.fromWei(deposit_amount, "gwei")))
     help="The network deposit data was generated for.",
     prompt="Please choose the network name",
     type=click.Choice(
-        [MAINNET, GOERLI, HARBOUR_MAINNET, HARBOUR_GOERLI, GNOSIS_CHAIN],
+        AVAILABLE_NETWORKS,
         case_sensitive=False,
     ),
 )

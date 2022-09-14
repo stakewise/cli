@@ -9,14 +9,7 @@ from web3.types import Middleware, MiddlewareOnion, Wei  # noqa: F401
 from stakewise_cli.coingecko import get_average_range_price
 from stakewise_cli.eth1 import get_block_timestamp, get_referrals, get_web3_client
 from stakewise_cli.ipfs import upload_to_ipfs
-from stakewise_cli.networks import (
-    GNOSIS_CHAIN,
-    GOERLI,
-    HARBOUR_GOERLI,
-    HARBOUR_MAINNET,
-    MAINNET,
-    NETWORKS,
-)
+from stakewise_cli.networks import AVAILABLE_NETWORKS, MAINNET, NETWORKS
 from stakewise_cli.proposals import generate_referrals_swise_specification
 from stakewise_cli.queries import get_ethereum_gql_client, get_stakewise_gql_client
 
@@ -36,7 +29,7 @@ MIN_SWISE_PER_WEI = 5
     help="The network to generate the referral proposal for",
     prompt="Enter the network name",
     type=click.Choice(
-        [MAINNET, GOERLI, HARBOUR_MAINNET, HARBOUR_GOERLI, GNOSIS_CHAIN],
+        AVAILABLE_NETWORKS,
         case_sensitive=False,
     ),
 )

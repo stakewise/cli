@@ -4,13 +4,7 @@ import click
 from eth_typing import ChecksumAddress
 
 from stakewise_cli.eth2 import validate_mnemonic
-from stakewise_cli.networks import (
-    GNOSIS_CHAIN,
-    GOERLI,
-    HARBOUR_GOERLI,
-    HARBOUR_MAINNET,
-    MAINNET,
-)
+from stakewise_cli.networks import AVAILABLE_NETWORKS, MAINNET
 from stakewise_cli.storages.local import LocalStorage
 from stakewise_cli.validators import validate_operator_address
 
@@ -22,7 +16,7 @@ from stakewise_cli.validators import validate_operator_address
     help="The network of ETH2 you are targeting.",
     prompt="Please choose the network name",
     type=click.Choice(
-        [MAINNET, GOERLI, HARBOUR_MAINNET, HARBOUR_GOERLI, GNOSIS_CHAIN],
+        AVAILABLE_NETWORKS,
         case_sensitive=False,
     ),
 )
