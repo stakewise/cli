@@ -57,6 +57,12 @@ WEB3SIGNER_URL_ENV = "WEB3SIGNER_URL"
     help="The path to solo validator's fee distribution path",
     type=click.Path(exists=True, file_okay=True, dir_okay=False),
 )
+@click.option(
+    "--proposal-builder-enabled",
+    help="Enable proposal builder for Teku and Prysm clients.",
+    default=True,
+    type=click.BOOL,
+)
 def sync_validator_keys(
     network: str,
     db_url: str,
@@ -64,6 +70,7 @@ def sync_validator_keys(
     output_dir: str,
     web3signer_url_env: str,
     solo_fees_file: str,
+    proposal_builder_enabled: bool,
 ) -> None:
     """
     The command is running by the init container in validator pods.
@@ -114,6 +121,7 @@ def sync_validator_keys(
     proposer_config = _generate_proposer_config(
         default_fee_recipient=default_fee_recipient,
         solo_fee_mapping=solo_fee_mapping,
+        proposal_builder_enabled=proposal_builder_enabled,
     )
     with open(join(output_dir, SIGNER_PROPOSER_CONFIG_FILENAME), "w") as f:
         f.write(proposer_config)
@@ -170,7 +178,9 @@ def _generate_signer_keys_config(public_keys: List[str]) -> str:
 
 
 def _generate_proposer_config(
-    default_fee_recipient: str, solo_fee_mapping: Dict[str, str]
+    default_fee_recipient: str,
+    solo_fee_mapping: Dict[str, str],
+    proposal_builder_enabled: bool,
 ) -> str:
     """
     Generate config for Teku and Prysm clients
@@ -181,7 +191,7 @@ def _generate_proposer_config(
                 public_key: {
                     "fee_recipient": fee_recipient,
                     "builder": {
-                        "enabled": True,
+                        "enabled": proposal_builder_enabled,
                     },
                 }
                 for public_key, fee_recipient in solo_fee_mapping.items()
@@ -190,7 +200,7 @@ def _generate_proposer_config(
         "default_config": {
             "fee_recipient": default_fee_recipient,
             "builder": {
-                "enabled": True,
+                "enabled": proposal_builder_enabled,
             },
         },
     }

@@ -56,6 +56,8 @@ class TestCommand(unittest.TestCase):
             "./valdata",
             "--solo-fees-file",
             "./solo-fees.json",
+            "--proposal-builder-enabled",
+            False,
         ]
         with runner.isolated_filesystem():
             with open("./solo-fees.json", "w") as f:
@@ -87,7 +89,7 @@ class TestCommand(unittest.TestCase):
 
             with open("./valdata/proposerConfig.json") as f:
                 s = (
-                    '{"proposer_config": {"%s": {"fee_recipient": "%s", "builder": {"enabled": true}}}, "default_config": {"fee_recipient": "%s", "builder": {"enabled": true}}}'
+                    '{"proposer_config": {"%s": {"fee_recipient": "%s", "builder": {"enabled": false}}}, "default_config": {"fee_recipient": "%s", "builder": {"enabled": false}}}'
                     % (
                         solo_pub_key,
                         solo_address,
