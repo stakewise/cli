@@ -7,11 +7,14 @@ import ipfshttpclient
 import requests
 
 from stakewise_cli.settings import (
-    IPFS_FETCH_ENDPOINTS,
-    IPFS_PIN_ENDPOINTS,
+    INFURA_IPFS_CLIENT_ENDPOINT,
+    INFURA_IPFS_CLIENT_PASSWORD,
+    INFURA_IPFS_CLIENT_USERNAME,
+    IPFS_EXTRA_FETCH_ENDPOINTS,
     IPFS_PINATA_API_KEY,
     IPFS_PINATA_PIN_ENDPOINT,
     IPFS_PINATA_SECRET_KEY,
+    LOCAL_IPFS_CLIENT_ENDPOINT,
 )
 
 
@@ -29,15 +32,28 @@ def add_ipfs_prefix(ipfs_id: str) -> str:
 def upload_to_ipfs(data: Any) -> str:
     """Submits data to IPFS."""
     ipfs_ids = []
-    for pin_endpoint in IPFS_PIN_ENDPOINTS:
+    try:
+        with ipfshttpclient.connect(
+            INFURA_IPFS_CLIENT_ENDPOINT,
+            username=INFURA_IPFS_CLIENT_USERNAME,
+            password=INFURA_IPFS_CLIENT_PASSWORD,
+        ) as client:
+            ipfs_id = client.add_json(data)
+            client.pin.add(ipfs_id)
+            ipfs_ids.append(ipfs_id)
+    except Exception as e:
+        click.echo(e)
+        click.echo(f"Failed to submit data to {INFURA_IPFS_CLIENT_ENDPOINT}")
+
+    if LOCAL_IPFS_CLIENT_ENDPOINT:
         try:
-            with ipfshttpclient.connect(pin_endpoint) as client:
+            with ipfshttpclient.connect(LOCAL_IPFS_CLIENT_ENDPOINT) as client:
                 ipfs_id = client.add_json(data)
                 client.pin.add(ipfs_id)
                 ipfs_ids.append(ipfs_id)
         except Exception as e:
             click.echo(e)
-            click.echo(f"Failed to submit data to {pin_endpoint}")
+            click.echo(f"Failed to submit data to {LOCAL_IPFS_CLIENT_ENDPOINT}")
 
     if IPFS_PINATA_API_KEY and IPFS_PINATA_SECRET_KEY:
         headers = {
@@ -72,14 +88,17 @@ def upload_to_ipfs(data: Any) -> str:
 def ipfs_fetch(ipfs_id: str) -> Any:
     """Fetches data from IPFS."""
     ipfs_id = ipfs_id.replace("ipfs://", "").replace("/ipfs/", "")
-    for ipfs_endpoint in IPFS_PIN_ENDPOINTS:
-        try:
-            with ipfshttpclient.connect(ipfs_endpoint) as client:
-                return client.get_json(ipfs_id)
-        except:  # noqa: E722
-            pass
+    try:
+        with ipfshttpclient.connect(
+            INFURA_IPFS_CLIENT_ENDPOINT,
+            username=INFURA_IPFS_CLIENT_USERNAME,
+            password=INFURA_IPFS_CLIENT_PASSWORD,
+        ) as client:
+            return client.get_json(ipfs_id)
+    except:  # noqa: E722
+        pass
 
-    for endpoint in IPFS_FETCH_ENDPOINTS:
+    for endpoint in IPFS_EXTRA_FETCH_ENDPOINTS:
         try:
             response = requests.get(f"{endpoint.rstrip('/')}/ipfs/{ipfs_id}")
             response.raise_for_status()
