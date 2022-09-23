@@ -64,10 +64,13 @@ Your validators will get ether assigned, and you can claim your operator rewards
 
 ### Operator CLI Environment Settings
 
-| Variable                       | Description                                                                      | Required | Default                                                                 |
-|--------------------------------|----------------------------------------------------------------------------------|----------|-------------------------------------------------------------------------|
-| IPFS_PIN_ENDPOINTS             | The IPFS endpoint where the deposit data will be uploaded                        | No       | /dns/ipfs.infura.io/tcp/5001/https                                      |
-| IPFS_FETCH_ENDPOINTS           | The IPFS endpoints from where the deposit data will be fetched                   | No       | https://gateway.pinata.cloud,http://cloudflare-ipfs.com,https://ipfs.io |
-| IPFS_PINATA_API_KEY            | The Pinata API key for uploading deposit data for the redundancy                 | No       | -                                                                       |
-| IPFS_PINATA_SECRET_KEY         | The Pinata Secret key for uploading deposit data for the redundancy              | No       | -                                                                       |
-| VAULT_VALIDATORS_MOUNT_POINT   | The mount point in Hashicorp Vault for storing validator keys                    | No       | validators                                                              |
+| Variable                       | Description                                                                | Required | Default                                                                 |
+|--------------------------------|----------------------------------------------------------------------------|----------|-------------------------------------------------------------------------|
+| INFURA_IPFS_CLIENT_ENDPOINT    | The http://infura.io IPFS endpoint where the deposit data will be uploaded | No       | /dns/ipfs.infura.io/tcp/5001/https                                      |
+| INFURA_IPFS_CLIENT_USERNAME    | The http://infura.io IPFS account username                                 | No       | -                                                                       |
+| INFURA_IPFS_CLIENT_PASSWORD    | The http://infura.io IPFS account password                                 | No       | -                                                                       |
+| LOCAL_IPFS_CLIENT_ENDPOINT     | The local IPFS endpoints from where the deposit data will be uploaded      | No       | -                                                                       |
+| IPFS_EXTRA_FETCH_ENDPOINTS     | The extra IPFS endpoints from where the deposit data will be fetched       | No       | https://gateway.pinata.cloud,http://cloudflare-ipfs.com,https://ipfs.io |
+| IPFS_PINATA_API_KEY            | The Pinata API key for uploading deposit data for the redundancy           | No       | -                                                                       |
+| IPFS_PINATA_SECRET_KEY         | The Pinata Secret key for uploading deposit data for the redundancy        | No       | -                                                                       |
+| VAULT_VALIDATORS_MOUNT_POINT   | The mount point in Hashicorp Vault for storing validator keys              | No       | validators                                                              |
