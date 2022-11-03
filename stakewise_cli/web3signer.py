@@ -129,3 +129,40 @@ class Web3SignerManager:
                 if validator["status"] in EXITED_STATUSES:
                     public_key = validator["validator"]["pubkey"]
                     del keys[public_key]
+
+    def process_transferred_keypairs(
+        self, keypairs: Dict[HexStr, int]
+    ) -> List[DatabaseKeyRecord]:
+        """
+        Returns prepared database key records from the transferred private keys.
+        """
+        key_records: List[DatabaseKeyRecord] = list()
+        index = len(self.keys)
+        with click.progressbar(
+            length=len(keypairs),
+            label="Processing transferred key pairs:\t\t",
+            show_percent=False,
+            show_pos=True,
+        ) as bar:
+            for public_key, private_key in keypairs.items():
+                is_registered = is_validator_registered(
+                    gql_client=self.eth_gql_client, public_key=public_key
+                )
+                if not is_registered:
+                    raise click.ClickException(
+                        f"Public key {public_key} is not registered"
+                    )
+
+                encrypted_private_key, nonce = self.encoder.encrypt(str(private_key))
+
+                key_record = DatabaseKeyRecord(
+                    public_key=public_key,
+                    private_key=bytes_to_str(encrypted_private_key),
+                    nonce=bytes_to_str(nonce),
+                    validator_index=index // self.validator_capacity,
+                )
+                key_records.append(key_record)
+                index += 1
+                bar.update(1)
+
+        return key_records
