@@ -41,9 +41,6 @@ def export_validator_keys(network: str, output_dir: str) -> None:
         type=click.STRING,
     )
 
-    if not exists(output_dir):
-        mkdir(output_dir)
-
     eth_gql_client = get_ethereum_gql_client(network)
 
     click.secho(
@@ -72,6 +69,10 @@ def export_validator_keys(network: str, output_dir: str) -> None:
     if len(keypairs) < sum(migrations_keys.values()):
         raise click.ClickException("Not enough keys to distribute")
 
+    if not exists(output_dir):
+        mkdir(output_dir)
+
+    output_dir = join(output_dir, network)
     if not exists(output_dir):
         mkdir(output_dir)
 
