@@ -40,13 +40,13 @@ from stakewise_cli.web3signer import Web3SignerManager
     default=100,
 )
 @click.option(
-    "--transferred-keys-dir",
-    help="The folder with transferred private keys.",
+    "--private-keys-dir",
+    help="The folder with private keys.",
     type=click.Path(exists=False, file_okay=False, dir_okay=True),
 )
 @click.option(
     "--decrypt-key",
-    help="The RSA private key to decrypt transferred private keys.",
+    help="The RSA private key to decrypt validators private keys.",
     type=click.Path(exists=True, file_okay=True, dir_okay=False),
 )
 def sync_db(
@@ -54,7 +54,7 @@ def sync_db(
     operator: ChecksumAddress,
     db_url: str,
     validator_capacity: int,
-    transferred_keys_dir,
+    private_keys_dir,
     decrypt_key,
 ) -> None:
     check_db_connection(db_url)
@@ -85,10 +85,10 @@ def sync_db(
         abort=True,
     )
     keys = web3signer.keys
-    if transferred_keys_dir and decrypt_key:
-        click.secho("Decrypting transferred key pairs...", bold=True)
+    if private_keys_dir and decrypt_key:
+        click.secho("Decrypting private keys...", bold=True)
         transferred_keypairs = decrypt_transferred_keys(
-            keys_dir=transferred_keys_dir, decrypt_key=decrypt_key
+            keys_dir=private_keys_dir, decrypt_key=decrypt_key
         )
         keys.extend(web3signer.process_transferred_keypairs(transferred_keypairs))
         click.confirm(

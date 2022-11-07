@@ -145,14 +145,6 @@ class Web3SignerManager:
             show_pos=True,
         ) as bar:
             for public_key, private_key in keypairs.items():
-                is_registered = is_validator_registered(
-                    gql_client=self.eth_gql_client, public_key=public_key
-                )
-                if not is_registered:
-                    raise click.ClickException(
-                        f"Public key {public_key} is not registered"
-                    )
-
                 encrypted_private_key, nonce = self.encoder.encrypt(str(private_key))
 
                 key_record = DatabaseKeyRecord(
