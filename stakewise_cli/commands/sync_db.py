@@ -54,8 +54,8 @@ def sync_db(
     operator: ChecksumAddress,
     db_url: str,
     validator_capacity: int,
-    private_keys_dir,
-    decrypt_key,
+    private_keys_dir: str,
+    decrypt_key: str,
 ) -> None:
     check_db_connection(db_url)
 

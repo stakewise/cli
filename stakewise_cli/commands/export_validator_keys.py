@@ -1,5 +1,6 @@
-from os import getcwd, mkdir
-from os.path import exists, join
+from os import getcwd
+from os.path import join
+from pathlib import Path
 from typing import Dict, List, Tuple
 
 import click
@@ -65,45 +66,40 @@ def export_validator_keys(network: str, output_dir: str) -> None:
     if not keypairs:
         raise click.ClickException("No registered validators private keys")
 
-    migrations_keys: Dict = MIGRATION_KEYS.get(network, {})
-    if len(keypairs) < sum(migrations_keys.values()):
+    migration_keys: Dict = MIGRATION_KEYS.get(network, {})
+
+    total_validators_count = sum(
+        [migration_key["validators_count"] for migration_key in migration_keys.values()]
+    )
+    if len(keypairs) < total_validators_count:
         raise click.ClickException("Not enough keys to distribute")
 
-    if not exists(output_dir):
-        mkdir(output_dir)
-
-    output_dir = join(output_dir, network)
-    if not exists(output_dir):
-        mkdir(output_dir)
-
     index = 0
-    operator_index = 0
-    for encrypt_key, validator_count in migrations_keys.items():
-        key_folder = join(output_dir, str(operator_index))
-        if not exists(key_folder):
-            mkdir(key_folder)
+    for operator_name, migration_key in migration_keys.items():
+        validators_count = migration_key["validators_count"]
+        key_folder = Path(output_dir) / network / operator_name
+        key_folder.mkdir(parents=True, exist_ok=True)
 
         with click.progressbar(
-            length=validator_count,
-            label=f"Encrypting private keys for {operator_index}\t\t",
+            length=validators_count,
+            label=f"Encrypting private keys for {operator_name}\t\t",
             show_percent=False,
             show_pos=True,
         ) as bar:
-            for (public_key, signing_key) in keypairs[index : index + validator_count]:
+            for (public_key, signing_key) in keypairs[index : index + validators_count]:
                 secret = str(signing_key.key)
                 enc_session_key, nonce, tag, ciphertext = rsa_encrypt(
-                    recipient_public_key=encrypt_key,
+                    recipient_public_key=migration_key["public_key"],
                     data=secret,
                 )
-                with open(join(key_folder, f"{public_key}.enc"), "wb") as f:
+                with open(key_folder / f"{public_key}.enc", "wb") as f:
                     for data in (enc_session_key, nonce, tag, ciphertext):
                         f.write(data)
                 bar.update(1)
-        index = index + validator_count
-        operator_index += 1
+        index = index + validators_count
 
     click.secho(
-        f"Exported {len(keypairs)} encrypted private keys to {output_dir} folder.\n",
+        f"Exported {total_validators_count} encrypted private keys to {output_dir} folder.\n",
         bold=True,
         fg="green",
     )

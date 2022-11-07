@@ -39,4 +39,9 @@ class DatabaseKeyRecord(TypedDict):
     validator_index: int
 
 
+class MigrationKey(TypedDict):
+    public_key: str
+    validators_count: int
+
+
 VaultState = Dict[HexStr, VaultKeystore]
