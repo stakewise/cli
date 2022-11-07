@@ -1,6 +1,6 @@
 from os import getcwd, mkdir
-from os.path import basename, exists, join
-from typing import Dict, List
+from os.path import exists, join
+from typing import Dict, List, Tuple
 
 import click
 from eth_typing import HexStr
@@ -10,6 +10,7 @@ from web3 import Web3
 from stakewise_cli.committee_shares import rsa_encrypt
 from stakewise_cli.eth1 import is_validator_registered
 from stakewise_cli.eth2 import get_mnemonic_signing_key, validate_mnemonic
+from stakewise_cli.migration_keys import MIGRATION_KEYS
 from stakewise_cli.networks import AVAILABLE_NETWORKS, MAINNET
 from stakewise_cli.queries import get_ethereum_gql_client
 from stakewise_cli.settings import IS_LEGACY
@@ -33,21 +34,15 @@ from stakewise_cli.typings import SigningKey
     help="The folder where private keys will be saved.",
     type=click.Path(exists=False, file_okay=False, dir_okay=True),
 )
-@click.option(
-    "--encode-public-key",
-    help="The RSA public key file to encrypt exported keys.",
-    required=True,
-    multiple=True,
-    type=click.Path(exists=True, file_okay=True, dir_okay=False),
-)
-def export_validator_keys(
-    network: str, output_dir: str, encode_public_key: List[str]
-) -> None:
+def export_validator_keys(network: str, output_dir: str) -> None:
     mnemonic = click.prompt(
         'Enter your mnemonic separated by spaces (" ")',
         value_proc=validate_mnemonic,
         type=click.STRING,
     )
+
+    if not exists(output_dir):
+        mkdir(output_dir)
 
     eth_gql_client = get_ethereum_gql_client(network)
 
@@ -55,7 +50,7 @@ def export_validator_keys(
         "Processing registered validators... .\n",
         fg="green",
     )
-    keypairs: Dict[HexStr, SigningKey] = {}
+    keypairs: List[Tuple[HexStr, SigningKey]] = []
     index = 0
     while True:
         signing_key = get_mnemonic_signing_key(mnemonic, index, IS_LEGACY)
@@ -67,39 +62,44 @@ def export_validator_keys(
         if not is_registered:
             break
 
-        keypairs[public_key] = signing_key
+        keypairs.append((public_key, signing_key))
         index += 1
 
     if not keypairs:
         raise click.ClickException("No registered validators private keys")
 
+    migrations_keys: Dict = MIGRATION_KEYS.get(network, {})
+    if len(keypairs) < sum(migrations_keys.values()):
+        raise click.ClickException("Not enough keys to distribute")
+
     if not exists(output_dir):
         mkdir(output_dir)
 
-    for encode_key in encode_public_key:
-        key_name = basename(encode_key)
-        key_folder = join(output_dir, key_name)
+    index = 0
+    operator_index = 0
+    for encrypt_key, validator_count in migrations_keys.items():
+        key_folder = join(output_dir, str(operator_index))
         if not exists(key_folder):
             mkdir(key_folder)
 
         with click.progressbar(
-            length=len(keypairs),
-            label=f"Encoding private keys for {key_name}\t\t",
+            length=validator_count,
+            label=f"Encrypting private keys for {operator_index}\t\t",
             show_percent=False,
             show_pos=True,
         ) as bar:
-            with open(encode_key, "r") as f:
-                recipient_public_key = f.read()
-            for public_key, signing_key in keypairs.items():
+            for (public_key, signing_key) in keypairs[index : index + validator_count]:
                 secret = str(signing_key.key)
                 enc_session_key, nonce, tag, ciphertext = rsa_encrypt(
-                    recipient_public_key=recipient_public_key,
+                    recipient_public_key=encrypt_key,
                     data=secret,
                 )
                 with open(join(key_folder, f"{public_key}.enc"), "wb") as f:
                     for data in (enc_session_key, nonce, tag, ciphertext):
                         f.write(data)
                 bar.update(1)
+        index = index + validator_count
+        operator_index += 1
 
     click.secho(
         f"Exported {len(keypairs)} encrypted private keys to {output_dir} folder.\n",
