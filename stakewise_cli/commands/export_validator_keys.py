@@ -71,7 +71,7 @@ def export_validator_keys(network: str, output_dir: str) -> None:
     total_validators_count = sum(
         [migration_key["validators_count"] for migration_key in migration_keys.values()]
     )
-    if len(keypairs) < total_validators_count:
+    if len(keypairs) != total_validators_count:
         raise click.ClickException("Not enough keys to distribute")
 
     index = 0
