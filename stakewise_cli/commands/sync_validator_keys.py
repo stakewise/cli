@@ -110,7 +110,7 @@ def sync_validator_keys(
         web3signer_url=web3signer_url,
         default_fee_recipient=default_fee_recipient,
         solo_fee_mapping=solo_fee_mapping,
-        builder_proposals=proposal_builder_enabled,
+        proposal_builder_enabled=proposal_builder_enabled,
     )
     with open(join(output_dir, LIGHTHOUSE_CONFIG_FILENAME), "w") as f:
         f.write(lighthouse_config)
