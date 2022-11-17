@@ -10,3 +10,4 @@ local.env
 validator_keys/
 committee/
 keys/
+exported_keys/

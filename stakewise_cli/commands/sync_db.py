@@ -4,6 +4,7 @@ from eth_typing import ChecksumAddress
 from stakewise_cli.eth2 import prompt_beacon_client, validate_mnemonic
 from stakewise_cli.networks import AVAILABLE_NETWORKS, MAINNET
 from stakewise_cli.storages.database import Database, check_db_connection
+from stakewise_cli.transfers import decrypt_transferred_keys
 from stakewise_cli.validators import validate_db_uri, validate_operator_address
 from stakewise_cli.web3signer import Web3SignerManager
 
@@ -38,8 +39,23 @@ from stakewise_cli.web3signer import Web3SignerManager
     type=int,
     default=100,
 )
+@click.option(
+    "--private-keys-dir",
+    help="The folder with private keys.",
+    type=click.Path(exists=False, file_okay=False, dir_okay=True),
+)
+@click.option(
+    "--decrypt-key",
+    help="The RSA private key to decrypt validators private keys.",
+    type=click.Path(exists=True, file_okay=True, dir_okay=False),
+)
 def sync_db(
-    network: str, operator: ChecksumAddress, db_url: str, validator_capacity: int
+    network: str,
+    operator: ChecksumAddress,
+    db_url: str,
+    validator_capacity: int,
+    private_keys_dir: str,
+    decrypt_key: str,
 ) -> None:
     check_db_connection(db_url)
 
@@ -68,7 +84,19 @@ def sync_db(
         default=True,
         abort=True,
     )
-    database.update_keys(keys=web3signer.keys)
+    keys = web3signer.keys
+    if private_keys_dir and decrypt_key:
+        click.secho("Decrypting private keys...", bold=True)
+        transferred_keypairs = decrypt_transferred_keys(
+            keys_dir=private_keys_dir, decrypt_key=decrypt_key
+        )
+        keys.extend(web3signer.process_transferred_keypairs(transferred_keypairs))
+        click.confirm(
+            f"Synced {len(transferred_keypairs)} transferred key pairs, apply changes to the database?",
+            default=True,
+            abort=True,
+        )
+    database.update_keys(keys=keys)
 
     click.secho(
         f"The database contains {len(web3signer.keys)} validator keys.\n"

@@ -64,7 +64,8 @@ class Web3SignerManager:
                 click.clear()
                 click.secho(f"Synced {index} key pairs...", bold=True)
 
-        self.remove_exited_public_keys(public_keys)
+        for key in self.check_exited_public_keys(list(public_keys.keys())):
+            del public_keys[key]
 
         click.secho("Generating private keys...", bold=True)
         deposit_data_key_records: List[DatabaseKeyRecord] = list()
@@ -115,17 +116,60 @@ class Web3SignerManager:
 
         return result
 
-    def remove_exited_public_keys(self, keys: Dict[HexStr, SigningKey]) -> None:
+    def check_exited_public_keys(self, keys: List[HexStr]) -> List[HexStr]:
         """Remove operator's public keys that have been exited."""
-
+        exited_public_keys = []
         # fetch validators in chunks of 100 keys
         for i in range(0, len(keys), 100):
             validators = get_validators(
                 beacon=self.beacon,
-                public_keys=list(keys.keys())[i : i + 100],
+                public_keys=list(keys)[i : i + 100],
                 state_id="finalized",
             )
             for validator in validators:
                 if validator["status"] in EXITED_STATUSES:
                     public_key = validator["validator"]["pubkey"]
-                    del keys[public_key]
+                    exited_public_keys.append(public_key)
+        return exited_public_keys
+
+    def process_transferred_keypairs(
+        self, keypairs: Dict[HexStr, int]
+    ) -> List[DatabaseKeyRecord]:
+        """
+        Returns prepared database key records from the transferred private keys.
+        """
+
+        exited_pubkeys = self.check_exited_public_keys(list(keypairs.keys()))
+        if exited_pubkeys:
+            raise click.ClickException(
+                f"Validators with public keys {','.join(exited_pubkeys)} are exited"
+            )
+        key_records: List[DatabaseKeyRecord] = list()
+        index = len(self.keys)
+        with click.progressbar(
+            length=len(keypairs),
+            label="Processing transferred key pairs:\t\t",
+            show_percent=False,
+            show_pos=True,
+        ) as bar:
+            for public_key, private_key in keypairs.items():
+                is_registered = is_validator_registered(
+                    gql_client=self.eth_gql_client, public_key=public_key
+                )
+                if not is_registered:
+                    raise click.ClickException(
+                        f"Public key {public_key} is not registered"
+                    )
+                encrypted_private_key, nonce = self.encoder.encrypt(str(private_key))
+
+                key_record = DatabaseKeyRecord(
+                    public_key=public_key,
+                    private_key=bytes_to_str(encrypted_private_key),
+                    nonce=bytes_to_str(nonce),
+                    validator_index=index // self.validator_capacity,
+                )
+                key_records.append(key_record)
+                index += 1
+                bar.update(1)
+
+        return key_records

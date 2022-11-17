@@ -11,6 +11,9 @@ from stakewise_cli.commands.create_referrals_proposal import (  # noqa: E402
 from stakewise_cli.commands.create_shard_pubkeys import (  # noqa: E402
     create_shard_pubkeys,
 )
+from stakewise_cli.commands.export_validator_keys import (  # noqa: E402
+    export_validator_keys,
+)
 from stakewise_cli.commands.get_mnemonic_pubkey import get_mnemonic_pubkey  # noqa: E402
 from stakewise_cli.commands.get_pubkey_index import get_pubkey_index  # noqa: E402
 from stakewise_cli.commands.sync_db import sync_db  # noqa: E402
@@ -45,6 +48,7 @@ cli.add_command(create_shard_pubkeys)
 cli.add_command(verify_shard_pubkeys)
 cli.add_command(get_mnemonic_pubkey)
 cli.add_command(get_pubkey_index)
+cli.add_command(export_validator_keys)
 
 if __name__ == "__main__":
     cli()
