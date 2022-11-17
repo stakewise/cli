@@ -45,7 +45,7 @@ def export_validator_keys(network: str, output_dir: str) -> None:
     eth_gql_client = get_ethereum_gql_client(network)
 
     click.secho(
-        "Processing registered validators... .\n",
+        "Processing registered validators...\n",
         fg="green",
     )
     keypairs: List[Tuple[HexStr, SigningKey]] = []
@@ -63,6 +63,10 @@ def export_validator_keys(network: str, output_dir: str) -> None:
         keypairs.append((public_key, signing_key))
         index += 1
 
+        if not (index % 100):
+            click.clear()
+            click.secho(f"Exported {index} key pairs...", bold=True)
+
     if not keypairs:
         raise click.ClickException("No registered validators private keys")
 
@@ -72,7 +76,10 @@ def export_validator_keys(network: str, output_dir: str) -> None:
         [migration_key["validators_count"] for migration_key in migration_keys.values()]
     )
     if len(keypairs) != total_validators_count:
-        raise click.ClickException("Not enough keys to distribute")
+        raise click.ClickException(
+            f"Not enough keys to distribute:"
+            f" expected={len(keypairs)}, actual={total_validators_count}"
+        )
 
     index = 0
     for operator_name, migration_key in migration_keys.items():
