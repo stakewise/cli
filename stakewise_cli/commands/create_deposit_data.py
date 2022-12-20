@@ -26,14 +26,14 @@ from stakewise_cli.queries import get_ethereum_gql_client, get_stakewise_gql_cli
 from stakewise_cli.validators import validate_operator_address_prompt
 
 
-@click.command(help="Creates deposit data and generates a forum post specification")
+@click.command(help="Creates deposit data")
 @click.option(
     "--network",
     default=MAINNET,
     help="The network to generate the deposit data for",
     prompt="Enter the network name",
     type=click.Choice(
-        [MAINNET, GOERLI, HARBOUR_MAINNET, HARBOUR_GOERLI, GNOSIS_CHAIN],
+        [MAINNET, GOERLI],
         case_sensitive=False,
     ),
 )
@@ -86,50 +86,50 @@ def create_deposit_data(
     )
 
     # 3. Assign operator wallet address
-    operator = click.prompt(
-        "Enter the wallet address that will receive rewards."
-        " If you already run StakeWise validators, please re-use the same wallet address",
-        value_proc=validate_operator_address_prompt,
-    )
+#    operator = click.prompt(
+#        "Enter the wallet address that will receive rewards."
+#        " If you already run StakeWise validators, please re-use the same wallet address",
+#        value_proc=validate_operator_address_prompt,
+#    )
 
     # 4. Generate private key shares for the committee
-    sw_gql_client = get_stakewise_gql_client(network)
-    if network == MAINNET:
+#    sw_gql_client = get_stakewise_gql_client(network)
+#    if network == MAINNET:
         # no private key shares for networks other than mainnet
-        committee_paths = create_committee_shares(
-            network=network,
-            gql_client=sw_gql_client,
-            operator=operator,
-            committee_folder=committee_folder,
-            keypairs=keypairs,
-        )
+#        committee_paths = create_committee_shares(
+#            network=network,
+#            gql_client=sw_gql_client,
+#            operator=operator,
+#            committee_folder=committee_folder,
+#            keypairs=keypairs,
+#        )
 
     # 5. Upload deposit data to IPFS
     ipfs_url = upload_to_ipfs(deposit_data)
 
     # 6. Generate proposal specification part
-    specification = generate_specification(
-        merkle_root=deposit_data_merkle_root,
-        ipfs_url=ipfs_url,
-        gql_client=sw_gql_client,
-        operator=operator,
-    )
-    click.clear()
-    click.secho(
-        "Submit the post to https://forum.stakewise.io with the following specification section:",
-        bold=True,
-        fg="green",
-    )
-    click.echo(specification)
+#    specification = generate_specification(
+#        merkle_root=deposit_data_merkle_root,
+#        ipfs_url=ipfs_url,
+#        gql_client=sw_gql_client,
+#        operator=operator,
+#    )
+#    click.clear()
+#    click.secho(
+#        "Submit the post to https://forum.stakewise.io with the following specification section:",
+#        bold=True,
+#        fg="green",
+#    )
+#    click.echo(specification)
 
     # 7. Generate committee message
-    if network == MAINNET:
+#    if network == MAINNET:
         # no private key shares for networks other than mainnet
-        click.secho(
-            "Share the encrypted validator key shares with the committee members through Telegram:",
-            bold=True,
-            fg="green",
-        )
+#        click.secho(
+#            "Share the encrypted validator key shares with the committee members through Telegram:",
+#            bold=True,
+#            fg="green",
+#        )
         # noinspection PyUnboundLocalVariable
-        for username, path in committee_paths.items():
-            click.echo(f"- @{username}: {path}")
+#        for username, path in committee_paths.items():
+#            click.echo(f"- @{username}: {path}")
