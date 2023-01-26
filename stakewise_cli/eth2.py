@@ -14,7 +14,7 @@ from requests.exceptions import ConnectionError, HTTPError
 from staking_deposit.key_handling.key_derivation.mnemonic import (
     get_mnemonic,
     get_seed,
-    verify_mnemonic,
+    reconstruct_mnemonic,
 )
 from staking_deposit.key_handling.key_derivation.path import path_to_nodes
 from staking_deposit.key_handling.key_derivation.tree import (
@@ -115,8 +115,9 @@ def get_beacon_client(network: str) -> Beacon:
 
 
 def validate_mnemonic(mnemonic) -> str:
-    if verify_mnemonic(mnemonic, WORD_LISTS_PATH):
-        return mnemonic
+    reconstructed_mnemonic = reconstruct_mnemonic(mnemonic, WORD_LISTS_PATH)
+    if reconstructed_mnemonic is not None:
+        return reconstucted_mnemonic
     else:
         raise click.BadParameter(
             "That is not a valid mnemonic, please check for typos."

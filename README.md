@@ -1,14 +1,18 @@
-# Operator CLI
+# Keysync CLI
 
-Operators CLI generates validators keys and deposit data for the validators.
-The validator keys have to be uploaded to the Hashicorp Vault or fetched locally.
-Read more about [operators onboarding process](https://docs.stakewise.io/node-operator/onboarding-process)
+Keysync CLI takes validator keys generated with staking-deposit-cli and
+synchronizes them to a PostgreSQL DB for use by web3signer.
+
+It is fork of Stakewise's Operators CLI, with most functionality removed,
+and DB sync from keystore-m files added.
 
 ## Usage
 
 ### Step 1. Installation
 
-See [releases page](https://github.com/stakewise/cli/releases) to download and decompress the corresponding binary files.
+Clone this repo.
+
+### Not yet updated beyond here
 
 ### Step 2. Create Deposit Data
 
