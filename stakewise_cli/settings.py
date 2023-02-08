@@ -28,7 +28,7 @@ IPFS_EXTRA_FETCH_ENDPOINTS = config(
 )
 
 VAULT_VALIDATORS_MOUNT_POINT = config(
-    "VAULT_VALIDATORS_MOUNT_POINT", default="validators"
+    "VAULT_VALIDATORS_MOUNT_POINT", default=""
 )
 
 IS_LEGACY = config("IS_LEGACY", default=False, cast=bool)
