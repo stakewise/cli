@@ -10,7 +10,30 @@ and DB sync from keystore-m files added.
 
 ### Step 1. Installation
 
-Clone this repo.
+#### Install prerequisites
+
+```
+sudo apt-get install python3-dev
+pip3 install poetry
+pip3 install pyinstaller
+```
+
+#### Install dependencies
+
+`poetry install --no-interaction --no-root`
+
+#### Make executable
+
+Adjust `RELEASE_VERSION` and run:
+
+```
+export RELEASE_VERSION=x.x.x
+export PYTHONHASHSEED=42
+export BUILD_FILE_NAME=~/gd-cli-${RELEASE_VERSION}-linux-amd64;
+mkdir ~/${BUILD_FILE_NAME};
+poetry run pyinstaller --onefile --hidden-import multiaddr.codecs.uint16be --hidden-import multiaddr.codecs.idna --collect-data stakewise_cli ./stakewise_cli/main.py --name gd-cli --distpath ~/${BUILD_FILE_NAME}
+```
+
 
 ### Not yet updated beyond here
 
