@@ -25,96 +25,10 @@ from stakewise_cli.utils import bytes_to_str
 class Web3SignerManager:
     def __init__(
         self,
-        operator: ChecksumAddress,
-        network: str,
-        mnemonic: str,
         validator_capacity: int,
-        beacon: Beacon,
     ):
-        self.sw_gql_client = get_stakewise_gql_client(network)
-        self.eth_gql_client = get_ethereum_gql_client(network)
-        self.beacon = beacon
-        self.network = network
-        self.mnemonic = mnemonic
         self.validator_capacity = validator_capacity
-        self.operator_address = operator
         self.encoder = Encoder()
-
-    @cached_property
-    def keys(self) -> List[DatabaseKeyRecord]:
-        """
-        Returns prepared database key records from the latest deposit data or already registered.
-        """
-        public_keys: Dict[HexStr, SigningKey] = OrderedDict()
-
-        index = 0
-        click.secho("Syncing key pairs...", bold=True)
-        while True:
-            signing_key = get_mnemonic_signing_key(self.mnemonic, index, IS_LEGACY)
-            public_key = Web3.toHex(G2ProofOfPossession.SkToPk(signing_key.key))
-            if public_key not in self.operator_deposit_data_public_keys:
-                is_registered = is_validator_registered(
-                    gql_client=self.eth_gql_client, public_key=public_key
-                )
-                if not is_registered:
-                    break
-            public_keys[public_key] = signing_key
-            index += 1
-            if not (index % 10):
-                click.clear()
-                click.secho(f"Synced {index} key pairs...", bold=True)
-
-        for key in self.check_exited_public_keys(list(public_keys.keys())):
-            del public_keys[key]
-
-        click.secho("Generating private keys...", bold=True)
-        deposit_data_key_records: List[DatabaseKeyRecord] = list()
-        index = 0
-        for public_key, signing_key in public_keys.items():
-            private_key = str(signing_key.key)
-            encrypted_private_key, nonce = self.encoder.encrypt(private_key)
-
-            key_record = DatabaseKeyRecord(
-                public_key=public_key,
-                private_key=bytes_to_str(encrypted_private_key),
-                nonce=bytes_to_str(nonce),
-                validator_index=index // self.validator_capacity,
-            )
-
-            if key_record not in deposit_data_key_records:
-                deposit_data_key_records.append(key_record)
-                index += 1
-
-        return deposit_data_key_records
-
-    @cached_property
-    def validators_count(self) -> int:
-        return math.ceil(len(self.keys) / self.validator_capacity)
-
-    @cached_property
-    def deposit_data_ipfs_link(self) -> str:
-        return get_operator_deposit_data_ipfs_link(
-            self.sw_gql_client, self.operator_address
-        )
-
-    @cached_property
-    def operator_deposit_data_public_keys(self) -> Set[HexStr]:
-        """Returns operator's deposit data public keys."""
-
-        result: Set[HexStr] = set()
-        if not self.deposit_data_ipfs_link:
-            return result
-
-        deposit_datum = ipfs_fetch(self.deposit_data_ipfs_link)
-        for deposit_data in deposit_datum:
-            public_key = deposit_data["public_key"]
-            if public_key in result:
-                raise click.ClickException(
-                    f"Public key {public_key} is presented twice in {self.deposit_data_ipfs_link}"
-                )
-            result.add(public_key)
-
-        return result
 
     def check_exited_public_keys(self, keys: List[HexStr]) -> List[HexStr]:
         """Remove operator's public keys that have been exited."""
@@ -139,13 +53,15 @@ class Web3SignerManager:
         Returns prepared database key records from the transferred private keys.
         """
 
-        exited_pubkeys = self.check_exited_public_keys(list(keypairs.keys()))
-        if exited_pubkeys:
-            raise click.ClickException(
-                f"Validators with public keys {','.join(exited_pubkeys)} are exited"
-            )
+        # exited_pubkeys = self.check_exited_public_keys(list(keypairs.keys()))
+        # if exited_pubkeys:
+        #     raise click.ClickException(
+        #         f"Validators with public keys {','.join(exited_pubkeys)} are exited"
+        #     )
+
         key_records: List[DatabaseKeyRecord] = list()
-        index = len(self.keys)
+        index = 0
+
         with click.progressbar(
             length=len(keypairs),
             label="Processing transferred key pairs:\t\t",
@@ -153,13 +69,13 @@ class Web3SignerManager:
             show_pos=True,
         ) as bar:
             for public_key, private_key in keypairs.items():
-                is_registered = is_validator_registered(
-                    gql_client=self.eth_gql_client, public_key=public_key
-                )
-                if not is_registered:
-                    raise click.ClickException(
-                        f"Public key {public_key} is not registered"
-                    )
+                # is_registered = is_validator_registered(
+                #     gql_client=self.eth_gql_client, public_key=public_key
+                # )
+                # if not is_registered:
+                #     raise click.ClickException(
+                #         f"Public key {public_key} is not registered"
+                #     )
                 encrypted_private_key, nonce = self.encoder.encrypt(str(private_key))
 
                 key_record = DatabaseKeyRecord(
