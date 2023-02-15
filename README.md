@@ -35,69 +35,47 @@ poetry run pyinstaller --onefile --hidden-import multiaddr.codecs.uint16be --hid
 ```
 
 
-### Not yet updated beyond here
+### Step 2. Create keys
 
-### Step 2. Create Deposit Data
+Use the official [staking-deposit-cli](https://github.com/ethereum/staking-deposit-cli) or any tool of your choice
+that outputs standard `keystore-m` JSON files to generate staking keys. This should be done on an airgapped, ephemeral
+machine, for example a Linux Live USB.
 
-Run the following command to create deposit data and DAO proposal specification:
+Make sure to set a withdrawal address with `--eth1_withdrawal_address 0xMYWALLET` during key generation! If this is not done, the withdrawal credentials will be a BLS key encoded by the mnemonic, and a withdrawal address would need to be set at a later date.
 
-```bash
-./operator-cli create-deposit-data
-```
+You will have:
+
+- One mnemonic. Keep this safe, only ever offline. It can be used to recreate keys as well as to generate additional keys.
+- Several keystore-m files encrypted with a passphrase. These will be loaded into the PostgreSQL database
+- One or more deposit_data files. You can "break these up" into as many keys per part as desired. All data in deposit_data is public. This contains the withdrawal credentials: Verify they are the expected address for all keys.
 
 **NB! You must store the generated mnemonic in a secure cold storage.
-It will allow you to restore the keys in case the Vault will get corrupted or lost.**
+It will allow you to restore the keys in case the database will get corrupted or lost.**
 
-### Step 3. Submit DAO proposal
+### Step 3. Deploy staking infrastructure
 
-Create a post about joining operators set at [StakeWise Forum](https://vote.stakewise.io).
-In your post you must include the `Specification` section that was generated in the previous step.
+Follow the instructions [here](https://docs.stakewise.io/node-operator/stakewise-infra-package/usage)
+to deploy the staking infrastructure.
 
-### Step 4. Deploy ETH2 infrastructure
+### Step 4. Sync keys to the database
 
-If the proposal from the previous step got approved by the DAO, follow the instructions [here](https://docs.stakewise.io/node-operator/stakewise-infra-package/usage)
-to deploy the ETH2 staking infrastructure.
-
-### Step 5. Sync keys to the Vault or locally
-
-You must **use the same mnemonic** as generated in step 1.
-**NB! Using the same mnemonic for multiple vaults will result into validators slashings**.
-
-Run the following command to sync new validator keys to the vault:
+You will use the keys generated in step 1. Place all keystore-m files into a directory. They all need to have the same password.
 
 ```bash
-./operator-cli sync-vault
+./gd-cli sync-db
 ```
 
-or to sync them locally
+This will synchronize all keys to the database, encrypt them at rest, and give you a decryption key.
 
-```bash
-./operator-cli sync-local
-```
+The web3signer pods will need to be redeployed with this key and restarted, whenever keys are added.
 
-After fetching the keys, make sure you have the right number of validators running and restart those that got new keys added.
+Adding keys involves loading all keys into a fresh table: Always keep all keystore-m in the import directory, not just new keystore-m.
 
-### Step 6. Commit Operator
+### Step 5. Deposit for the keys
 
-Once you're 100% ready for Ether assignments, commit your operator:
+You can safely synchronize e.g. 1,000 keys to the database and then deposit for them in batches as small as desired. To deposit, use a deposit_data JSON file that contains validators that have **not** been deposited for, and only those, at the [Ethereum launchpad](https://launchpad.ethereum.org) or with a tool of your choosing such as ethdo or a bulk deposit contract.
 
-- Go to the Operators smart contract ([Goerli](https://goerli.etherscan.io/address/0x0d92156861a0BC7037cC21470327Bd3Bc750EB1D#writeProxyContract), [Harbour Goerli](https://goerli.etherscan.io/address/0x7C27896338e3130036E53BCC0f013cB20e21991c#writeProxyContract), [Mainnet](https://etherscan.io/address/0x002932e11E95DC84C17ed5f94a0439645D8a97BC), [Harbour Mainnet](https://etherscan.io/address/0x270ad793b7bb315a9fd07f1fffd8ab1e3621df7e))
-- Click on `Connect to Web3` button and connect your wallet. The address must match the one used during proposal generation.
-- Call `commitOperator` function. If that's your onboarding, you must deposit 1 ETH (specified in Wei) collateral together with the call.
+**NB It is possible to double-deposit. Processes should be in place to dispose of deposit_data JSON that have successfully been deposited for**
 
-Congratulations on becoming StakeWise Node Operator🎉.
-Your validators will get ether assigned, and you can claim your operator rewards from [Farms Page](https://app.stakewise.io/farms).
-
-
-### Operator CLI Environment Settings
-
-| Variable                       | Description                                                                | Required | Default                                                                 |
-|--------------------------------|----------------------------------------------------------------------------|----------|-------------------------------------------------------------------------|
-| INFURA_IPFS_CLIENT_ENDPOINT    | The http://infura.io IPFS endpoint where the deposit data will be uploaded | No       | /dns/ipfs.infura.io/tcp/5001/https                                      |
-| INFURA_IPFS_CLIENT_USERNAME    | The http://infura.io IPFS account username                                 | No       | -                                                                       |
-| INFURA_IPFS_CLIENT_PASSWORD    | The http://infura.io IPFS account password                                 | No       | -                                                                       |
-| LOCAL_IPFS_CLIENT_ENDPOINT     | The local IPFS endpoints from where the deposit data will be uploaded      | No       | -                                                                       |
-| IPFS_EXTRA_FETCH_ENDPOINTS     | The extra IPFS endpoints from where the deposit data will be fetched       | No       | https://gateway.pinata.cloud,http://cloudflare-ipfs.com,https://ipfs.io |
-| IPFS_PINATA_API_KEY            | The Pinata API key for uploading deposit data for the redundancy           | No       | -                                                                       |
-| IPFS_PINATA_SECRET_KEY         | The Pinata Secret key for uploading deposit data for the redundancy        | No       | -                                                                       |
-| VAULT_VALIDATORS_MOUNT_POINT   | The mount point in Hashicorp Vault for storing validator keys              | No       | validators                                                              |
+**WARNING The withdrawal address cannot be changed after deposit. Triple-check that it is an address under your control!**
+ 
