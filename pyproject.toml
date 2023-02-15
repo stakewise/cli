@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "stakewise-cli"
-version = "0.1"
+version = "0.1.2"
 description = "Galaxy Digital Operator CLI is used to generate and manage Ethereum validator keys."
-authors = ["Dmitri Tsumak <tsumak.dmitri@gmail.com>"]
+authors = ["Dmitri Tsumak <tsumak.dmitri@gmail.com>","Mario Delgado <mdelgado@cryptomanufaktur.io>","Thorsten Behrens <tbehrens@cryptomanufaktur.io>"]
 license = "AGPL-3.0-only"
 readme = "README.md"
 
@@ -10,19 +10,10 @@ readme = "README.md"
 python = ">=3.8,<3.11"
 python-decouple = "==3.6"
 web3 = "==5.28.0"
-py-ecc = "==5.2.0"
 staking-deposit = {git = "https://github.com/ethereum/staking-deposit-cli", rev = "v2.3.0"}
-hvac = {version = "==0.11.2", extras = ["parser"]}
 gql = {version = "==3.1.0", extras = ["aiohttp"]}
-backoff = "==1.11.1"
-aiohttp = {version = "==3.8.1", extras = ["speedups"]}
-ssz = "==0.2.4"
 click = "==8.1.2"
-requests-toolbelt = "==0.9.1"
-colorama = "==0.4.4"
-pycryptodome = "==3.14.1"
 psycopg2-binary = "==2.9.3"
-PyYAML = "==6.0"
 
 [tool.poetry.dev-dependencies]
 mypy = "==0.942"
