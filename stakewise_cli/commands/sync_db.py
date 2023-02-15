@@ -1,4 +1,5 @@
 import os
+from sys import exit
 import math
 
 from typing import Dict
@@ -71,9 +72,9 @@ def sync_db(
                 fg="red"
             )
 
-            quit()
+            exit("Password incorrect")
 
-        keypairs[keystore.pubkey] = int.from_bytes(secret_bytes, 'big')
+        keypairs['0x'+keystore.pubkey] = int.from_bytes(secret_bytes, 'big')
 
     click.confirm(
         f"Found {len(keypairs)} key pairs, apply changes to the database?",
