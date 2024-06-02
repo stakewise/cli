@@ -110,6 +110,7 @@ def sync_validator_keys(
         web3signer_url=web3signer_url,
         default_fee_recipient=default_fee_recipient,
         solo_fee_mapping=solo_fee_mapping,
+        proposal_builder_enabled=proposal_builder_enabled,
     )
     with open(join(output_dir, LIGHTHOUSE_CONFIG_FILENAME), "w") as f:
         f.write(lighthouse_config)
@@ -138,6 +139,7 @@ def _generate_lighthouse_config(
     web3signer_url: str,
     default_fee_recipient: str,
     solo_fee_mapping: Dict[str, str],
+    proposal_builder_enabled: bool
 ) -> str:
     """
     Generate config for Lighthouse clients
@@ -151,6 +153,7 @@ def _generate_lighthouse_config(
             "suggested_fee_recipient": solo_fee_mapping.get(
                 public_key, default_fee_recipient
             ),
+            "builder_proposals": proposal_builder_enabled,
         }
         for public_key in public_keys
     ]
