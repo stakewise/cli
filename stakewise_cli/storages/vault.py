@@ -71,6 +71,9 @@ class Vault(object):
         self.max_keys_per_validator = NETWORKS[network]["MAX_KEYS_PER_VALIDATOR"]
         self.operator_address = operator
         self.check_mnemonic()
+        global VAULT_VALIDATORS_MOUNT_POINT
+        if VAULT_VALIDATORS_MOUNT_POINT == "":
+            VAULT_VALIDATORS_MOUNT_POINT = namespace
 
     @cached_property
     def vault_validator_names(self) -> Set[str]:
@@ -341,8 +344,8 @@ class Vault(object):
             show_pos=True,
         ) as bar:
             for validator_name in removed_validators:
-                self.vault_client.sys.delete_policy(validator_name)
-                self.vault_client.delete_kubernetes_role(validator_name)
+                self.vault_client.sys.delete_policy(f"{self.namespace}-{validator_name}")
+                self.vault_client.delete_kubernetes_role(f"{self.namespace}-{validator_name}")
                 self.vault_client.secrets.kv.delete_secret(
                     path=f"{validator_name}/password",
                     mount_point=VAULT_VALIDATORS_MOUNT_POINT,
@@ -355,13 +358,13 @@ class Vault(object):
 
             for validator_name in new_validators:
                 self.vault_client.sys.create_or_update_policy(
-                    name=validator_name,
+                    name=f"{self.namespace}-{validator_name}",
                     policy=VALIDATOR_POLICY
                     % (VAULT_VALIDATORS_MOUNT_POINT, validator_name),
                 )
                 self.vault_client.auth.kubernetes.create_role(
-                    name=validator_name,
-                    policies=[validator_name],
+                    name=f"{self.namespace}-{validator_name}",
+                    policies=[f"{self.namespace}-{validator_name}"],
                     bound_service_account_names=validator_name,
                     bound_service_account_namespaces=self.namespace,
                 )
